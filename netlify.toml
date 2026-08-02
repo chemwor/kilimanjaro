@@ -1,0 +1,21 @@
+# Static site — nothing to build, just publish the repo root.
+[build]
+  publish = "."
+
+# Photos are content-stable: their filenames never change meaning, so let the
+# browser and Netlify's CDN hold on to them.
+[[headers]]
+  for = "/assets/photos/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# The page itself should always be revalidated so edits to trip.js show up.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

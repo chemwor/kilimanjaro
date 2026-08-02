@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kilimanjaro · Lemosho in Seven Days</title>
+<meta name="description" content="A day-by-day account of climbing Kilimanjaro by the Lemosho route in seven days, June 2026.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="unit-toggle" id="unitToggle" role="group" aria-label="Elevation units">
+  <button data-unit="m" class="on">m</button>
+  <button data-unit="ft">ft</button>
+</div>
+
+<header class="hero" id="top">
+  <div class="hero-sky" aria-hidden="true">
+    <div class="stars"></div>
+    <div class="glow"></div>
+    <svg class="ridge" viewBox="0 0 1440 420" preserveAspectRatio="none" aria-hidden="true">
+      <path class="ridge-far" d="M0,300 L180,250 L320,275 L470,190 L620,120 L700,96 L790,110 L900,175 L1050,215 L1200,180 L1320,225 L1440,205 L1440,420 L0,420 Z"/>
+      <path class="ridge-near" d="M0,360 L160,330 L300,348 L450,300 L600,262 L760,290 L880,268 L1020,310 L1180,285 L1320,325 L1440,305 L1440,420 L0,420 Z"/>
+    </svg>
+  </div>
+
+  <div class="hero-inner">
+    <p class="kicker">Lemosho Route · June 2026</p>
+    <h1>Kilimanjaro</h1>
+    <p class="lede">Eight days of walking, done in seven. Here is every camp, every ridge,
+      and every metre of it — from a rainforest gate at 2,100&nbsp;m to the roof of Africa.</p>
+
+    <div class="hero-stats">
+      <div><b data-count="5895" data-elev>5,895</b><span>summit metres</span></div>
+      <div><b data-count="65">65</b><span>km on foot</span></div>
+      <div><b data-count="7">7</b><span>days</span></div>
+      <div><b>14:15</b><span>stood on the summit</span></div>
+    </div>
+
+    <a class="scroll-cue" href="#profile"><span>Come with us</span><i></i></a>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Full-route elevation profile ─────────────────────────────── -->
+  <section class="profile-section" id="profile">
+    <div class="wrap">
+      <p class="eyebrow">The whole climb, end to end</p>
+      <h2>Seven days of up</h2>
+      <p class="section-note">
+        Every camp, pass and peak we touched, plotted against distance walked. Hover or tap any
+        point. The bright band is the summit push.
+      </p>
+    </div>
+    <div class="profile-holder">
+      <div id="profile-chart"></div>
+    </div>
+    <div class="wrap profile-legend">
+      <span><i class="k-camp"></i>camp</span>
+      <span><i class="k-high"></i>high point</span>
+      <span><i class="k-skip"></i>camp we skipped</span>
+      <span><i class="k-summit"></i>summit</span>
+    </div>
+  </section>
+
+  <!-- ── Day sections, rendered from data/trip.js ─────────────────── -->
+  <div id="days"></div>
+
+  <!-- ── Closing ledger ───────────────────────────────────────────── -->
+  <section class="ledger" id="ledger">
+    <div class="wrap">
+      <p class="eyebrow">What it added up to</p>
+      <h2>The ledger</h2>
+      <div class="ledger-grid" id="ledgerGrid"></div>
+      <p class="outro">
+        Kilimanjaro is the tallest freestanding mountain on earth — no range holding it up, just
+        3,000&nbsp;vertical metres of volcano standing alone on a plain. You walk through five
+        climate zones to get up it: rainforest, heather, moorland, alpine desert, arctic. Four days
+        out of the trees and one very long night, and you are standing on the top of a continent.
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Lemosho Route · 24–30 June 2026 · Uhuru Peak reached 28 June</p>
+    <a href="#top">Back to the gate ↑</a>
+  </div>
+</footer>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" hidden>
+  <button class="lb-close" aria-label="Close">✕</button>
+  <button class="lb-prev" aria-label="Previous">‹</button>
+  <button class="lb-next" aria-label="Next">›</button>
+  <figure><img id="lbImg" alt=""><figcaption id="lbCap"></figcaption></figure>
+</div>
+
+<script src="data/trip.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+._*
+
+# Source media lives outside the repo — only the converted web JPEGs in
+# assets/photos/ are committed. Never let the originals in.
+*.HEIC
+*.heic
+*.MOV
+*.mov
+*.MP4
+*.mp4
+
+*.log
+node_modules/
+.netlify/
