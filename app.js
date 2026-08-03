@@ -38,6 +38,12 @@
 
   const pad2 = n => String(n).padStart(2, '0');
 
+  /* Chart colors come from the stylesheet, so the palette has one home. */
+  const cssVar = n => getComputedStyle(document.documentElement)
+    .getPropertyValue(n).trim() || '#000';
+  const PALETTE = {};
+  const paint = n => (PALETTE[n] ??= cssVar(n));
+
   /* Prose carries {{4673}} for an elevation and {{65km}} for a distance, so a
      sentence never hard-codes a unit. These become spans that the ft/m toggle
      repaints along with everything else. */
@@ -51,12 +57,19 @@
   };
   const HERO = 'assets/photos/hero/';
 
-  /* Climate-zone colours, keyed to the legend in the collar. */
+  /* Climate zones, in the order they must be tested: "Heather & moorland" is
+     heather, and "Moorland -> alpine desert" is moorland, so the earlier and
+     more specific names have to win. Each key has a palette in styles.css. */
   const ZONES = [
-    [/rainforest/i, '#3f5c37'], [/heather/i, '#5f7a55'], [/moorland/i, '#9a8f5f'],
-    [/alpine|desert/i, '#a68a6d'], [/arctic|summit/i, '#5b7f96'],
+    [/rainforest/i, 'rainforest', '#3f5c37'],
+    [/heather/i,    'heather',    '#5f7a55'],
+    [/moorland/i,   'moorland',   '#9a8f5f'],
+    [/alpine|desert/i, 'desert',  '#a68a6d'],
+    [/arctic|summit/i, 'arctic',  '#5b7f96'],
   ];
-  const zoneColor = z => (ZONES.find(([re]) => re.test(z || '')) || [, '#9a8f5f'])[1];
+  const zoneOf    = z => ZONES.find(([re]) => re.test(z || '')) || [, 'moorland', '#9a8f5f'];
+  const zoneKey   = z => zoneOf(z)[1];
+  const zoneColor = z => zoneOf(z)[2];
 
   /* Fade a full-bleed photograph in once it has actually decoded. */
   const fadeIn = img => {
@@ -133,6 +146,7 @@
       const opener = document.createElement('section');
       opener.className = 'opener';
       opener.id = 'day' + day.n;
+      opener.dataset.zone = zoneKey(day.zone);
       opener.innerHTML = `
         <div class="opener-img">
           <img alt="${day.label}" loading="${day.n > 2 ? 'lazy' : 'eager'}"
@@ -155,7 +169,7 @@
 
       const sec = document.createElement('section');
       sec.className = 'sheet-block day' + (day.summit ? ' is-summit' : '');
-      sec.style.setProperty('--zone', zoneColor(day.zone));
+      sec.dataset.zone = zoneKey(day.zone);
 
       const logbook = day.points.length ? `
         <table class="logbook">
@@ -237,11 +251,11 @@
   /* How a station is drawn. The legend below the chart calls this too, so the
      key can never drift from the plot. */
   const STATION = {
-    summit:  { r: 6,   fill: '#8c3a2b', ring: true },
-    peak:    { r: 5,   fill: '#a68a6d' },
-    camp:    { r: 5,   fill: '#3d5f73' },
-    skipped: { r: 5,   fill: '#efe9dc', stroke: '#9b937f' },
-    plain:   { r: 3.4, fill: '#9b937f' },
+    summit:  { r: 6,   fill: paint('--alert'), ring: true },
+    peak:    { r: 5,   fill: paint('--z-scree') },
+    camp:    { r: 5,   fill: paint('--blue') },
+    skipped: { r: 5,   fill: paint('--sheet'), stroke: paint('--ink-faint') },
+    plain:   { r: 3.4, fill: paint('--ink-faint') },
   };
   const stationKind = p => p.summit ? 'summit' : p.peak ? 'peak'
                          : p.camp ? 'camp' : p.skipped ? 'skipped' : 'plain';
@@ -376,7 +390,7 @@
            aria-label="Elevation profile of the seven-day Lemosho route">
         <defs>
           <pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="0" x2="0" y2="6" stroke="#22201b" stroke-width=".7" opacity=".2"/>
+            <line x1="0" y1="0" x2="0" y2="6" stroke="${paint('--ink')}" stroke-width=".7" opacity=".2"/>
           </pattern>
         </defs>
         ${band}${grid}
@@ -384,7 +398,7 @@
         <path class="track" d="${line}"/>
         ${dots}${strip}${ticks}
         <line class="ax-line" x1="${M.l}" y1="${M.t + ih}" x2="${W - M.r}" y2="${M.t + ih}"
-              stroke="#22201b" stroke-width="1.2"/>
+              stroke="${paint('--ink')}" stroke-width="1.2"/>
       </svg>`;
 
     $$('#profile-chart .pt-elev').forEach(n => reg(n, +n.dataset.m, v => comma(toUnit(v))));
@@ -424,8 +438,12 @@
     const X = i => M.l + (i / (read.length - 1)) * iw;
     const Y = v => M.t + (1 - (v - lo) / (hi - lo)) * ih;
 
-    const zones = [[90, 100, '#5f7a55', 'normal'], [80, 90, '#9a8f5f', 'hypoxemia'],
-                   [60, 80, '#a68a6d', 'severe'], [lo, 60, '#8c3a2b', 'critical']];
+    /* The oximetry bands reuse the climate-zone colors: green where the body
+       is fine, then the same browns the mountain turns, then the alert red. */
+    const zones = [[90, 100, paint('--z-heather'), 'normal'],
+                   [80, 90,  paint('--z-moor'),   'hypoxemia'],
+                   [60, 80,  paint('--z-scree'),  'severe'],
+                   [lo, 60,  paint('--alert'),    'critical']];
     const bands = zones.map(([a, b, c, label]) => `
       <rect x="${M.l}" y="${Y(b)}" width="${iw}" height="${Y(a) - Y(b)}" fill="${c}" opacity=".16"/>
       <text class="zone-label" x="${M.l + iw + 12}" y="${(Y(a) + Y(b)) / 2 + 4}">${label}</text>`).join('');
@@ -441,15 +459,15 @@
     read.forEach((d, i) => {
       const x = X(i), y = Y(d.spo2);
       dots += `<g class="ox-pt" data-day="${d.n}">
-          <circle cx="${x}" cy="${y}" r="5.5" fill="#efe9dc" stroke="#22201b" stroke-width="1.8"/>
+          <circle cx="${x}" cy="${y}" r="5.5" fill="${paint('--sheet')}" stroke="${paint('--ink')}" stroke-width="1.8"/>
           <text class="ox-val" x="${x}" y="${y - 15}" text-anchor="middle">${d.spo2}%</text></g>`;
       if (d.spo2Low) {
         const yl = Y(d.spo2Low);
-        drop += `<line x1="${x}" y1="${y}" x2="${x}" y2="${yl}" stroke="#8c3a2b"
+        drop += `<line x1="${x}" y1="${y}" x2="${x}" y2="${yl}" stroke="${paint('--alert')}"
                    stroke-width="1.4" stroke-dasharray="3 3"/>
                  <g class="ox-pt" data-day="${d.n}">
-                   <circle cx="${x}" cy="${yl}" r="6.5" fill="#8c3a2b"/>
-                   <circle cx="${x}" cy="${yl}" r="11" fill="none" stroke="#8c3a2b" stroke-width="1"/>
+                   <circle cx="${x}" cy="${yl}" r="6.5" fill="${paint('--alert')}"/>
+                   <circle cx="${x}" cy="${yl}" r="11" fill="none" stroke="${paint('--alert')}" stroke-width="1"/>
                    <text class="ox-crit" x="${x - 20}" y="${yl + 4}" text-anchor="end">${d.spo2Low}% · passed out</text>
                  </g>`;
       }
@@ -462,11 +480,11 @@
       <svg viewBox="0 0 ${W} ${H}" role="img"
            aria-label="Blood oxygen falling from 89% on day one to the 30s at the summit">
         ${bands}${grid}
-        <path d="${line}" fill="none" stroke="#22201b" stroke-width="1.8"
+        <path d="${line}" fill="none" stroke="${paint('--ink')}" stroke-width="1.8"
               stroke-linejoin="round" stroke-linecap="round"/>
         ${drop}${dots}${ticks}
         <line class="ax-line" x1="${M.l}" y1="${M.t + ih}" x2="${M.l + iw}" y2="${M.t + ih}"
-              stroke="#22201b" stroke-width="1.2"/>
+              stroke="${paint('--ink')}" stroke-width="1.2"/>
       </svg>`;
 
     $$('#oxygen-chart .ox-pt').forEach(g => g.addEventListener('click', () => jumpToDay(g.dataset.day)));
@@ -514,6 +532,33 @@
       fadeIn($('img', el));
     });
   }
+
+  /* ── page tint ──────────────────────────────────────────────────
+     The zone palettes live in styles.css. Rather than duplicate the hex
+     values here, put an off-screen probe into a zone and read back what the
+     stylesheet computed, then hand those to :root as the live values the
+     body, contours and HUD follow. */
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;left:-9999px;width:0;height:0';
+  document.body.appendChild(probe);
+  const paletteCache = {};
+  const paletteFor = key => {
+    if (paletteCache[key]) return paletteCache[key];
+    probe.dataset.zone = key || '';
+    const cs = getComputedStyle(probe);
+    const pal = ['--paper', '--sheet', '--rule'].map(v => cs.getPropertyValue(v).trim());
+    return (paletteCache[key] = pal);
+  };
+  let paintedZone;
+  const paintPage = key => {
+    if (key === paintedZone) return;
+    paintedZone = key;
+    const [paper, sheet, rule] = paletteFor(key);
+    const root = document.documentElement.style;
+    root.setProperty('--live-paper', paper);
+    root.setProperty('--live-sheet', sheet);
+    root.setProperty('--live-rule', rule);
+  };
 
   /* ── altitude HUD ───────────────────────────────────────────── */
   function renderHud() {
@@ -592,6 +637,9 @@
         }
         if (mid >= bottom) { km = sp.to; span = sp; }
       }
+      const firstOpener = $('#day1'), ledger = $('#ledger');
+      const inDays = firstOpener && mid >= firstOpener.offsetTop &&
+                     (!ledger || mid < ledger.offsetTop);
       if (collar && mid < collar.offsetTop) { km = 0; span = spans[0]; }
 
       if (Math.abs(km - lastKm) < 0.05) return;
@@ -602,12 +650,22 @@
       whereOut.textContent = `${near.name} · day ${span.day.n}`;
       zoneOut.textContent = span.zone;
       swatch.style.background = zoneColor(span.zone);
+      paintPage(inDays ? zoneKey(span.zone) : null);
       mark.setAttribute('transform',
         `translate(${X(km).toFixed(1)},${Y(m).toFixed(1)})`);
     };
 
-    addEventListener('scroll', () => requestAnimationFrame(update), { passive: true });
-    addEventListener('resize', update);
+    /* One frame in flight at a time. requestAnimationFrame is suspended while
+       the tab is hidden, so re-sync on the way back in. */
+    let queued = false;
+    const schedule = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; update(); });
+    };
+    addEventListener('scroll', schedule, { passive: true });
+    addEventListener('resize', schedule);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) update(); });
     update();
   }
 
