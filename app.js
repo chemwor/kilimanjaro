@@ -26,7 +26,7 @@
 
   /* ── formatting ─────────────────────────────────────────────── */
   const fmtDate = iso => new Date(iso + 'T12:00:00')
-    .toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' });
+    .toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' });
 
   /* Times are stored 24-hour (sortable, easy to edit) and shown as am/pm. */
   const fmtTime = t => {
@@ -37,6 +37,18 @@
   };
 
   const pad2 = n => String(n).padStart(2, '0');
+
+  /* Prose carries {{4673}} for an elevation and {{65km}} for a distance, so a
+     sentence never hard-codes a unit. These become spans that the ft/m toggle
+     repaints along with everything else. */
+  const interp = text => String(text ?? '')
+    .replace(/\{\{(\d+(?:\.\d+)?)\s*km\}\}/gi, (_, v) => `<span data-udist="${v}"></span>`)
+    .replace(/\{\{(\d+)\}\}/g, (_, v) => `<span data-uelev="${v}"></span>`);
+
+  const wireUnits = root => {
+    $$('[data-uelev]', root).forEach(n => reg(n, +n.dataset.uelev, elev));
+    $$('[data-udist]', root).forEach(n => reg(n, +n.dataset.udist, dist));
+  };
   const HERO = 'assets/photos/hero/';
 
   /* Climate-zone colours, keyed to the legend in the collar. */
@@ -44,7 +56,7 @@
     [/rainforest/i, '#3f5c37'], [/heather/i, '#5f7a55'], [/moorland/i, '#9a8f5f'],
     [/alpine|desert/i, '#a68a6d'], [/arctic|summit/i, '#5b7f96'],
   ];
-  const zoneColour = z => (ZONES.find(([re]) => re.test(z || '')) || [, '#9a8f5f'])[1];
+  const zoneColor = z => (ZONES.find(([re]) => re.test(z || '')) || [, '#9a8f5f'])[1];
 
   /* Fade a full-bleed photograph in once it has actually decoded. */
   const fadeIn = img => {
@@ -134,15 +146,16 @@
             <span class="z">${day.zone}</span>
           </p>
           <h2>${day.label}</h2>
-          ${day.heroCaption ? `<p class="opener-cap">${day.heroCaption}</p>` : ''}
+          ${day.heroCaption ? `<p class="opener-cap">${interp(day.heroCaption)}</p>` : ''}
         </div>`;
       host.appendChild(opener);
+      wireUnits(opener);
       fadeIn($('img', opener));
       $$('.opener-alt b[data-alt]', opener).forEach(n => reg(n, +n.dataset.alt, elev));
 
       const sec = document.createElement('section');
       sec.className = 'sheet-block day' + (day.summit ? ' is-summit' : '');
-      sec.style.setProperty('--zone', zoneColour(day.zone));
+      sec.style.setProperty('--zone', zoneColor(day.zone));
 
       const logbook = day.points.length ? `
         <table class="logbook">
@@ -153,14 +166,14 @@
                         .filter(Boolean).join(' ');
             return `<tr class="${cls}">
               <td class="sym">${symbolFor(p)}</td>
-              <td><span class="nm">${p.name}</span><span class="nt">${p.note}</span></td>
+              <td><span class="nm">${p.name}</span><span class="nt">${interp(p.note)}</span></td>
               <td class="el" data-m="${p.m}"></td>
             </tr>`;
           }).join('')}
         </table>` : '';
 
       const paras = (Array.isArray(day.blurb) ? day.blurb : [day.blurb])
-        .map(p => `<p>${p}</p>`).join('');
+        .map(p => `<p>${interp(p)}</p>`).join('');
 
       /* [label, literal text, measurement, formatter, isHot] */
       const log = [
@@ -179,7 +192,7 @@
           <h3>What happened</h3>
           <ul class="moments">
             ${day.moments.map(m => `<li class="${m.critical ? 'is-critical' : ''}">
-              <b>${m.title}</b><span>${m.text}</span></li>`).join('')}
+              <b>${interp(m.title)}</b><span>${interp(m.text)}</span></li>`).join('')}
           </ul>
         </div>` : '';
 
@@ -192,7 +205,7 @@
         <div class="entry-body">
           <div class="entry-main">
             <div class="prose">${paras}</div>
-            ${day.highlight ? `<p class="pull">${day.highlight}</p>` : ''}
+            ${day.highlight ? `<p class="pull">${interp(day.highlight)}</p>` : ''}
             ${logbook}
           </div>
           <aside class="entry-side">
@@ -210,6 +223,7 @@
         <div class="gallery" data-date="${day.date}"></div>`;
 
       host.appendChild(sec);
+      wireUnits(sec);
       addInterstitial(host, day.n);
 
       $$('.logbook .el[data-m]', sec).forEach(n => reg(n, +n.dataset.m, v => comma(toUnit(v)) + ' ' + unit));
@@ -391,7 +405,7 @@
       const p = pts[i];
       return {
         html: `<b>${p.name}</b><span class="tip-el">${elev(p.m)} · ${dist(p.km)} in · day ${p.day}</span>
-               <p>${p.note}</p>`,
+               <p>${interp(p.note)}</p>`,
         day: p.day,
       };
     });
@@ -492,10 +506,11 @@
       el.innerHTML = `
         <img loading="lazy" alt="${i.caption}" src="${HERO + i.image + '.jpg'}">
         <div class="inter-type">
-          <p class="inter-quote">${i.quote}</p>
-          <p class="inter-cap">${i.caption}</p>
+          <p class="inter-quote">${interp(i.quote)}</p>
+          <p class="inter-cap">${interp(i.caption)}</p>
         </div>`;
       host.appendChild(el);
+      wireUnits(el);
       fadeIn($('img', el));
     });
   }
@@ -586,7 +601,7 @@
       elevOut.textContent = elev(m);
       whereOut.textContent = `${near.name} · day ${span.day.n}`;
       zoneOut.textContent = span.zone;
-      swatch.style.background = zoneColour(span.zone);
+      swatch.style.background = zoneColor(span.zone);
       mark.setAttribute('transform',
         `translate(${X(km).toFixed(1)},${Y(m).toFixed(1)})`);
     };
@@ -693,6 +708,7 @@
   });
 
   /* ── boot ───────────────────────────────────────────────────── */
+  wireUnits(document);
   renderCover();
   renderRail();
   renderDays();
