@@ -1,4 +1,4 @@
-# Kilimanjaro — Lemosho in Seven Days
+# Kilimanjaro: Lemosho in Seven Days
 
 A day-by-day site for the 24–30 June 2026 Lemosho climb.
 
@@ -9,14 +9,14 @@ A day-by-day site for the 24–30 June 2026 Lemosho climb.
 ./start.sh 8080     # or pick a port
 ```
 
-Plain HTML/CSS/JS — no build step, no dependencies. It must be served over
+Plain HTML/CSS/JS, with no build step and no dependencies. It must be served over
 HTTP rather than opened as a file, because the galleries `fetch()` a manifest.
 
 ## Editing the trip
 
 **`data/trip.js` is the only file you need to touch for content.** Everything
-on the page — the day sections, the elevation profile, the route points, the
-stat tiles, the closing ledger — is rendered from it.
+on the page (the day sections, the elevation profile, the blood oxygen chart,
+the route points, the stat tiles, the closing ledger) is rendered from it.
 
 Each day looks like this:
 
@@ -24,7 +24,7 @@ Each day looks like this:
 {
   n: 5,                          // day number
   date: "2026-06-28",            // also picks which photos appear
-  label: "The Wall — and then we didn't stop",
+  label: "The Wall, and then we didn't stop",
   from: "Barranco Camp",
   to:   "Barafu Camp",
   sleepAt: 4673,                 // metres; null if not a camp night
@@ -44,7 +44,7 @@ Each day looks like this:
 ```
 
 Point flags: `camp`, `peak`, `summit`, `skipped`. `m` is metres, `km` is
-cumulative distance from the trailhead — that pair is what positions the point
+cumulative distance from the trailhead. That pair is what positions the point
 on the elevation profile, so keep `km` increasing down the list.
 
 Ascent and descent totals are computed from the points, not typed in. If you
@@ -62,12 +62,20 @@ generated from EXIF capture times. To rebuild it after adding photos, re-run
 
 A photo appears under whichever day has a matching `date`.
 
+## Times
+
+Times are **stored 24-hour** in `trip.js` and `photos.json` (sortable and easy
+to edit) and **displayed as am/pm**. `fmtTime()` in `app.js` does the
+conversion for the "on the move" line, the gallery timestamps and the lightbox
+caption. Times written inside narrative prose are literal text, so those are
+already am/pm in the data.
+
 ## Dates
 
 The itinerary dates and the "on the move" windows were read from the EXIF
 capture times on the phone photos and the drone clips, which agree with each
 other. Note that Spotlight (`mdls`) reports these four hours ahead of the
-camera clock on this library — `sips -g creation` gives the true capture time.
+camera clock on this library; `sips -g creation` gives the true capture time.
 
 ## Not done yet
 

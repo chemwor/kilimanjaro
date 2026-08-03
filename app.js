@@ -1,4 +1,4 @@
-/* Kilimanjaro — Lemosho in seven days
+/* Kilimanjaro: Lemosho in seven days
  * Renders the day sections, the elevation profile and the galleries from
  * data/trip.js + data/photos.json. No build step, no dependencies.
  */
@@ -26,6 +26,14 @@
   /* ── day sections ───────────────────────────────────────────── */
   const fmtDate = iso => new Date(iso + 'T12:00:00')
     .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+  /* Times are stored 24-hour (sortable, easy to edit) and shown as am/pm. */
+  const fmtTime = t => {
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(t).trim());
+    if (!m) return t;
+    const h24 = +m[1];
+    return `${h24 % 12 || 12}:${m[2]} ${h24 < 12 ? 'am' : 'pm'}`;
+  };
 
   /* Gain/loss for a day, measured across its own points and carried on
      from where the previous day finished. */
@@ -67,9 +75,9 @@
 
       // A null metre value means "print the literal text, don't track units".
       const stats = [
-        ['up',   'ascent',   gain ? '+' + gain : '—', gain || null],
-        ['down', 'descent',  loss ? '−' + loss : '—', loss || null],
-        ['',     'distance', day.distanceKm ? day.distanceKm + ' km' : '—', null],
+        ['up',   'ascent',   gain ? '+' + gain : '0', gain],
+        ['down', 'descent',  loss ? '−' + loss : '0', loss],
+        ['',     'distance', (day.distanceKm || 0) + ' km', null],
         ['',     'on trail', /\d\s*h|→/.test(day.hours) ? day.hours : day.hours + ' h', null],
         day.sleepAt
           ? ['', 'slept at', null, day.sleepAt]
@@ -97,7 +105,7 @@
           </div>
           <h2>${day.label}</h2>
           <p class="leg"><b>${day.from}</b> <span class="arrow">→</span> <b>${day.to}</b>
-             ${day.firstFrame ? `<span>· on the move ${day.firstFrame}–${day.lastFrame}</span>` : ''}</p>
+             ${day.firstFrame ? `<span>· on the move ${fmtTime(day.firstFrame)} to ${fmtTime(day.lastFrame)}</span>` : ''}</p>
 
           <div class="day-body">
             <div>
@@ -189,7 +197,7 @@
                   { r: 4.5, fill: '#59677b', stroke: 'transparent', sw: 0 };
 
     /* Label placement. A label sits above its point on peaks and on the way up,
-       below it in the troughs — then we walk left-to-right and push any label
+       below it in the troughs. Then we walk left-to-right and push any label
        that still overlaps an already-placed one further out. */
     const LBL_H = 26;
     const halfW = name => Math.max(34, name.length * 3.2);   // ~6.4px per char, halved
@@ -324,7 +332,7 @@
           <text class="ox-val" x="${x}" y="${y - 16}" text-anchor="middle">${d.spo2}%</text>
         </g>`;
 
-      // Summit day carries a second, much lower reading — the collapse.
+      // Summit day carries a second, much lower reading: the collapse.
       if (d.spo2Low) {
         const yl = Y(d.spo2Low);
         drop += `
@@ -333,7 +341,7 @@
           <g class="ox-pt is-crit" data-day="${d.n}">
             <circle cx="${x}" cy="${yl}" r="8" fill="var(--crit)"
                     stroke="rgba(214,69,69,.28)" stroke-width="7"/>
-            <text class="ox-crit" x="${x - 18}" y="${yl + 5}" text-anchor="end">${d.spo2Low}% — passed out</text>
+            <text class="ox-crit" x="${x - 18}" y="${yl + 5}" text-anchor="end">${d.spo2Low}% · passed out</text>
           </g>`;
       }
     });
@@ -401,7 +409,7 @@
     try {
       const res = await fetch('data/photos.json');
       photos = await res.json();
-    } catch { return; }               // opened via file:// — galleries stay empty
+    } catch { return; }               // opened via file://, galleries stay empty
 
     const byDate = photos.reduce((acc, p) => ((acc[p.date] ??= []).push(p), acc), {});
 
@@ -418,8 +426,8 @@
       const tile = (p, i) => {
         const b = document.createElement('button');
         b.className = 'shot';
-        b.innerHTML = `<img loading="lazy" src="${THUMB + p.file}" alt="Day photo at ${p.time}">
-                       <time>${p.time}</time>`;
+        b.innerHTML = `<img loading="lazy" src="${THUMB + p.file}" alt="Day photo at ${fmtTime(p.time)}">
+                       <time>${fmtTime(p.time)}</time>`;
         const img = $('img', b);
         img.addEventListener('load', () => img.classList.add('loaded'));
         if (img.complete) img.classList.add('loaded');
@@ -449,8 +457,8 @@
   function paintLightbox() {
     const p = lightboxSet[lightboxIdx];
     lbImg.src = FULL + p.file;
-    lbImg.alt = `Photo taken at ${p.time} on ${p.date}`;
-    lbCap.textContent = `${fmtDate(p.date)} · ${p.time} · ${lightboxIdx + 1}/${lightboxSet.length}`;
+    lbImg.alt = `Photo taken at ${fmtTime(p.time)} on ${p.date}`;
+    lbCap.textContent = `${fmtDate(p.date)} · ${fmtTime(p.time)} · ${lightboxIdx + 1}/${lightboxSet.length}`;
   }
   const step = d => {
     lightboxIdx = (lightboxIdx + d + lightboxSet.length) % lightboxSet.length;

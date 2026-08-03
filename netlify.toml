@@ -1,4 +1,4 @@
-# Static site — nothing to build, just publish the repo root.
+# Static site: nothing to build, just publish the repo root.
 [build]
   publish = "."
 

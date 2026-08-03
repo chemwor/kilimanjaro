@@ -1,4 +1,4 @@
-/* Kilimanjaro — Lemosho in seven days */
+/* Kilimanjaro: Lemosho in seven days */
 
 :root{
   --ink:#0b0f14;
@@ -9,10 +9,10 @@
   --text-dim:#93a1b3;
   --text-faint:#61708550;
 
-  --ice:#8fd3e8;          /* glacier blue  — cold / altitude */
-  --sun:#f2a65a;          /* sunrise amber — summit */
+  --ice:#8fd3e8;          /* glacier blue:  cold / altitude */
+  --sun:#f2a65a;          /* sunrise amber: summit */
   --sun-hot:#ef7d3d;
-  --forest:#6f9e6b;       /* rainforest    — low camps */
+  --forest:#6f9e6b;       /* rainforest:    low camps */
   --scree:#a2917d;        /* alpine desert */
   --crit:#d64545;         /* the emergency */
 
