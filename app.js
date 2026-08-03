@@ -1,6 +1,6 @@
 /* Kilimanjaro: Lemosho in seven days
- * Renders the day sections, the elevation profile and the galleries from
- * data/trip.js + data/photos.json. No build step, no dependencies.
+ * Renders the day sheets, the elevation profile, the pulse oximetry chart and
+ * the photo plates from data/trip.js + data/photos.json. No build, no deps.
  */
 (() => {
   'use strict';
@@ -9,23 +9,24 @@
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
   /* ── units ──────────────────────────────────────────────────── */
-  let unit = 'm';
-  const M_TO_FT = 3.28084;
-  const toUnit  = m => unit === 'm' ? Math.round(m) : Math.round(m * M_TO_FT);
-  const comma   = n => n.toLocaleString('en-US');
-  const elev    = m => comma(toUnit(m)) + ' ' + unit;
+  let unit = 'ft';
+  const M_TO_FT = 3.28084, KM_TO_MI = 0.621371;
+  const toUnit = m => unit === 'm' ? Math.round(m) : Math.round(m * M_TO_FT);
+  const comma  = n => n.toLocaleString('en-US');
+  const elev   = m => comma(toUnit(m)) + ' ' + unit;
+  const dist   = km => unit === 'm' ? `${km} km` : `${(km * KM_TO_MI).toFixed(1)} mi`;
 
-  /* Elements whose text is an elevation get re-rendered on unit switch. */
-  const elevNodes = [];
-  const regElev = (node, metres, fmt = elev) => {
-    elevNodes.push({ node, metres, fmt });
-    node.textContent = fmt(metres);
+  /* Nodes whose text is a measurement get repainted on unit switch. */
+  const liveNodes = [];
+  const reg = (node, value, fmt) => {
+    liveNodes.push({ node, value, fmt });
+    node.textContent = fmt(value);
   };
-  const repaintElev = () => elevNodes.forEach(e => { e.node.textContent = e.fmt(e.metres); });
+  const repaint = () => liveNodes.forEach(e => { e.node.textContent = e.fmt(e.value); });
 
-  /* ── day sections ───────────────────────────────────────────── */
+  /* ── formatting ─────────────────────────────────────────────── */
   const fmtDate = iso => new Date(iso + 'T12:00:00')
-    .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    .toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' });
 
   /* Times are stored 24-hour (sortable, easy to edit) and shown as am/pm. */
   const fmtTime = t => {
@@ -35,8 +36,10 @@
     return `${h24 % 12 || 12}:${m[2]} ${h24 < 12 ? 'am' : 'pm'}`;
   };
 
-  /* Gain/loss for a day, measured across its own points and carried on
-     from where the previous day finished. */
+  const pad2 = n => String(n).padStart(2, '0');
+  const symbolFor = p => p.summit ? '◆' : p.peak ? '▲' : (p.camp || p.skipped) ? '△' : '·';
+
+  /* ── vertical accounting ────────────────────────────────────── */
   function dayVertical(day, prevElev) {
     let gain = 0, loss = 0, last = prevElev;
     for (const p of day.points) {
@@ -50,6 +53,32 @@
     return { gain, loss, end: last };
   }
 
+  function totals() {
+    const all = TRIP.days.flatMap(d => d.points).filter(p => !p.skipped);
+    let gain = 0, loss = 0;
+    for (let i = 1; i < all.length; i++) {
+      const d = all[i].m - all[i - 1].m;
+      if (d > 0) gain += d; else loss -= d;
+    }
+    return { gain, loss };
+  }
+
+  /* ── masthead figures ───────────────────────────────────────── */
+  function renderRail() {
+    const f = TRIP.facts;
+    const rows = [
+      ['summit',        f.summitElevation, v => comma(toUnit(v)), false],
+      ['on foot',       f.distanceKm,      dist,                  false],
+      ['days',          f.days,            String,                false],
+      ['on the summit', f.summitTime,      String,                false],
+      ['lowest SpO₂',   f.summitSpo2,      v => v + '%',          true],
+    ];
+    $('#heroRail').innerHTML = rows.map(([lbl, , , hot]) =>
+      `<div class="${hot ? 'hot' : ''}"><b></b><span>${lbl}</span></div>`).join('');
+    $$('#heroRail b').forEach((b, i) => reg(b, rows[i][1], rows[i][2]));
+  }
+
+  /* ── day sheets ─────────────────────────────────────────────── */
   function renderDays() {
     const host = $('#days');
     let prevElev = null;
@@ -59,380 +88,355 @@
       prevElev = end;
 
       const sec = document.createElement('section');
-      sec.className = 'day reveal' + (day.summit ? ' is-summit' : '');
+      sec.className = 'sheet-block day' + (day.summit ? ' is-summit' : '');
       sec.id = 'day' + day.n;
 
-      const pointsHTML = day.points.map(p => {
-        const cls = [
-          p.camp && 'is-camp', p.peak && 'is-peak',
-          p.summit && 'is-summit', p.skipped && 'is-skipped',
-        ].filter(Boolean).join(' ');
-        return `<li class="${cls}">
-            <span class="p-name">${p.name}</span><span class="p-el" data-m="${p.m}"></span>
-            <span class="p-note">${p.note}</span>
-          </li>`;
-      }).join('');
+      const logbook = day.points.length ? `
+        <table class="logbook">
+          <tr><th></th><th>Station</th><th style="text-align:right">Elev.</th></tr>
+          ${day.points.map(p => {
+            const cls = [p.camp && 'is-camp', p.peak && 'is-peak',
+                         p.summit && 'is-summit', p.skipped && 'is-skipped']
+                        .filter(Boolean).join(' ');
+            return `<tr class="${cls}">
+              <td class="sym">${symbolFor(p)}</td>
+              <td><span class="nm">${p.name}</span><span class="nt">${p.note}</span></td>
+              <td class="el" data-m="${p.m}"></td>
+            </tr>`;
+          }).join('')}
+        </table>` : '';
 
-      // A null metre value means "print the literal text, don't track units".
-      const stats = [
-        ['up',   'ascent',   gain ? '+' + gain : '0', gain],
-        ['down', 'descent',  loss ? '−' + loss : '0', loss],
-        ['',     'distance', (day.distanceKm || 0) + ' km', null],
-        ['',     'on trail', /\d\s*h|→/.test(day.hours) ? day.hours : day.hours + ' h', null],
-        day.sleepAt
-          ? ['', 'slept at', null, day.sleepAt]
-          : ['', 'ended at', 'the gate', null],
-        day.spo2
-          ? ['o2', 'blood oxygen', day.spo2 + '%', null]
-          : ['', '', '', null],
-      ];
-
-      // blurb is an array of paragraphs (a plain string still works).
       const paras = (Array.isArray(day.blurb) ? day.blurb : [day.blurb])
-        .map((p, i) => `<p class="${i === 0 ? 'blurb' : 'blurb cont'}">${p}</p>`).join('');
+        .map(p => `<p>${p}</p>`).join('');
 
-      const momentsHTML = (day.moments || []).map(m => `
-        <li class="${m.critical ? 'is-critical' : ''}">
-          <b>${m.title}</b><span>${m.text}</span>
-        </li>`).join('');
+      /* [label, literal text, measurement, formatter, isHot] */
+      const log = [
+        ['On the move', day.firstFrame ? `${fmtTime(day.firstFrame)}–${fmtTime(day.lastFrame)}` : '·'],
+        ['Ascent',   null, gain,           v => (v ? '+' : '') + elev(v)],
+        ['Descent',  null, loss,           v => (v ? '−' : '') + elev(v)],
+        ['Distance', null, day.distanceKm, dist],
+        ['On trail', /h|→/.test(day.hours) ? day.hours : day.hours + ' h'],
+        day.sleepAt ? ['Slept at', null, day.sleepAt, elev]
+                    : ['Ended at', 'Mweka Gate'],
+      ];
+      if (day.spo2) log.push(['Blood O₂', day.spo2 + '%', null, null, true]);
+
+      const moments = (day.moments || []).length ? `
+        <div class="panel">
+          <h3>What happened</h3>
+          <ul class="moments">
+            ${day.moments.map(m => `<li class="${m.critical ? 'is-critical' : ''}">
+              <b>${m.title}</b><span>${m.text}</span></li>`).join('')}
+          </ul>
+        </div>` : '';
 
       sec.innerHTML = `
-        <div class="wrap">
-          <div class="day-head">
-            <span class="day-num">Day ${day.n}</span>
-            <span class="day-date">${fmtDate(day.date)}</span>
-            <span class="day-zone">${day.zone}</span>
+        <div class="sheet-head">
+          <span class="stamp">Day ${pad2(day.n)}</span>
+          <span class="head-meta">${fmtDate(day.date)}</span>
+          <span class="head-zone">${day.zone}</span>
+        </div>
+        <div class="entry-body">
+          <div class="entry-main">
+            <h2>${day.label}</h2>
+            <p class="leg"><b>${day.from}</b> <span class="arrow">→</span> <b>${day.to}</b></p>
+            <div class="prose">${paras}</div>
+            ${day.highlight ? `<p class="pull">${day.highlight}</p>` : ''}
+            ${logbook}
           </div>
-          <h2>${day.label}</h2>
-          <p class="leg"><b>${day.from}</b> <span class="arrow">→</span> <b>${day.to}</b>
-             ${day.firstFrame ? `<span>· on the move ${fmtTime(day.firstFrame)} to ${fmtTime(day.lastFrame)}</span>` : ''}</p>
-
-          <div class="day-body">
-            <div>
-              ${paras}
-              ${day.highlight ? `<span class="tag">${day.highlight}</span>` : ''}
-              ${day.points.length ? `<ul class="points">${pointsHTML}</ul>` : ''}
+          <aside class="entry-side">
+            <div class="panel">
+              <h3>Day log</h3>
+              <dl>
+                ${log.map(([k, txt, v, , hot], i) =>
+                  `<dt>${k}</dt><dd class="${hot ? 'hot' : ''}"${v != null ? ` data-log="${i}"` : ''}>${txt ?? ''}</dd>`
+                ).join('')}
+              </dl>
             </div>
-            <div class="day-side">
-              <div class="day-stats">
-                ${stats.map(([k, lbl, txt, m]) => lbl === '' ? '' : `
-                  <div class="${k}"><b ${m != null ? `data-m="${m}"` : ''}>${txt ?? ''}</b>
-                  <span>${lbl}</span></div>`).join('')}
-              </div>
-              ${momentsHTML ? `<ul class="moments">${momentsHTML}</ul>` : ''}
-            </div>
-          </div>
-          <div class="gallery" data-date="${day.date}"></div>
-        </div>`;
+            ${moments}
+          </aside>
+        </div>
+        <div class="gallery" data-date="${day.date}"></div>`;
 
       host.appendChild(sec);
 
-      // Wire every [data-m] up to the unit toggle.
-      $$('.p-el[data-m]', sec).forEach(n => regElev(n, +n.dataset.m));
-      $$('.day-stats b[data-m]', sec).forEach(n => {
-        const m = +n.dataset.m, sign = n.textContent.trim()[0];
-        regElev(n, m, mm => (sign === '+' || sign === '−' ? sign : '') + comma(toUnit(mm)) + ' ' + unit);
+      $$('.logbook .el[data-m]', sec).forEach(n => reg(n, +n.dataset.m, v => comma(toUnit(v)) + ' ' + unit));
+      $$('.panel dd[data-log]', sec).forEach(n => {
+        const row = log[+n.dataset.log];
+        reg(n, row[2], row[3]);
       });
     });
   }
 
   /* ── elevation profile ──────────────────────────────────────── */
   function renderProfile() {
-    // Flatten every point into one walked sequence. Where a day ends and the
-    // next begins at the same camp (Barafu, day 4 → 5) we'd otherwise plot the
-    // same dot twice, so drop the repeat.
     const pts = [];
     TRIP.days.forEach(d => d.points.forEach(p => {
       const last = pts[pts.length - 1];
-      if (last && last.km === p.km && last.m === p.m) return;
-      pts.push({ ...p, day: d.n, dayLabel: d.label });
+      if (last && last.km === p.km && last.m === p.m) return;   // same camp, two days
+      pts.push({ ...p, day: d.n });
     }));
     if (!pts.length) return;
 
-    const W = 1200, H = 450;
-    const M = { t: 62, r: 34, b: 56, l: 62 };
+    const W = 1160, H = 440;
+    const M = { t: 60, r: 40, b: 58, l: 64 };
     const iw = W - M.l - M.r, ih = H - M.t - M.b;
-
     const kmMax = Math.max(...pts.map(p => p.km));
     const elMin = 1400, elMax = 6300;
     const X = km => M.l + (km / kmMax) * iw;
-    const Y = m  => M.t + (1 - (m - elMin) / (elMax - elMin)) * ih;
+    const Y = m => M.t + (1 - (m - elMin) / (elMax - elMin)) * ih;
 
     const line = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.km).toFixed(1)},${Y(p.m).toFixed(1)}`).join(' ');
     const area = `${line} L${X(kmMax).toFixed(1)},${M.t + ih} L${X(pts[0].km).toFixed(1)},${M.t + ih} Z`;
 
-    // Horizontal gridlines every 1000 m.
     let grid = '';
     for (let m = 2000; m <= 6000; m += 1000) {
       grid += `<line class="ax-line" x1="${M.l}" y1="${Y(m)}" x2="${W - M.r}" y2="${Y(m)}"/>
-               <text class="ax-label" x="${M.l - 12}" y="${Y(m) + 4}" text-anchor="end"
-                     data-gridm="${m}">${m}</text>`;
+               <text class="ax-label" x="${M.l - 12}" y="${Y(m) + 4}" text-anchor="end" data-gridm="${m}"></text>`;
     }
 
-    // Shade the summit push (day 5, Barafu out and back).
     const summitDay = TRIP.days.find(d => d.summit);
     let band = '';
     if (summitDay) {
       const kms = summitDay.points.map(p => p.km);
       const x0 = X(Math.min(...kms)), x1 = X(Math.max(...kms));
-      band = `<rect class="band-summit" x="${x0}" y="${M.t}" width="${x1 - x0}" height="${ih}" rx="4"/>
-              <text class="band-label" x="${(x0 + x1) / 2}" y="${M.t - 34}" text-anchor="middle">summit push</text>`;
+      band = `<rect class="band-summit" x="${x0}" y="${M.t}" width="${x1 - x0}" height="${ih}"/>
+              <text class="band-label" x="${(x0 + x1) / 2}" y="${M.t - 32}" text-anchor="middle">summit push</text>`;
     }
 
-    // Day markers along the bottom axis.
+    // Climate-zone strip along the axis, keyed to the collar legend.
+    const zones = [[0, 8, '#3f5c37'], [8, 14, '#5f7a55'], [14, 24, '#9a8f5f'],
+                   [24, 43, '#a68a6d'], [43, 52, '#5b7f96'], [52, kmMax, '#5f7a55']];
+    const strip = zones.map(([a, b, c]) =>
+      `<rect x="${X(a)}" y="${M.t + ih + 6}" width="${X(b) - X(a)}" height="5" fill="${c}" opacity=".8"/>`).join('');
+
     let ticks = '';
     TRIP.days.forEach(d => {
       if (!d.points.length) return;
       const kms = d.points.map(p => p.km);
-      const mid = X((Math.min(...kms) + Math.max(...kms)) / 2);
-      ticks += `<text class="daytick" x="${mid}" y="${M.t + ih + 34}" text-anchor="middle">DAY ${d.n}</text>`;
+      ticks += `<text class="daytick" x="${X((Math.min(...kms) + Math.max(...kms)) / 2)}"
+                y="${M.t + ih + 32}" text-anchor="middle">DAY ${d.n}</text>`;
     });
 
-    // Points. Labels alternate above/below to keep them from colliding.
-    const dot = p =>
-      p.summit  ? { r: 7, fill: 'var(--sun)',   stroke: 'rgba(242,166,90,.3)', sw: 6 } :
-      p.skipped ? { r: 5, fill: 'var(--ink-2)', stroke: '#7c8798', sw: 1.5, dash: '3 2' } :
-      p.peak    ? { r: 6, fill: 'var(--scree)', stroke: 'rgba(162,145,125,.25)', sw: 4 } :
-      p.camp    ? { r: 6, fill: 'var(--ice)',   stroke: 'rgba(143,211,232,.22)', sw: 4 } :
-                  { r: 4.5, fill: '#59677b', stroke: 'transparent', sw: 0 };
-
-    /* Label placement. A label sits above its point on peaks and on the way up,
-       below it in the troughs. Then we walk left-to-right and push any label
-       that still overlaps an already-placed one further out. */
-    const LBL_H = 26;
-    const halfW = name => Math.max(34, name.length * 3.2);   // ~6.4px per char, halved
-    const floorY = M.t + ih - 4;                             // labels must clear the axis
-    const placed = [];
+    // Label placement: above on peaks, below in troughs, then push apart.
+    const LBL_H = 25, halfW = n => Math.max(32, n.length * 3.1);
+    const floorY = M.t + ih - 4, placed = [];
     const labels = pts.map((p, i) => {
-      const prev = pts[i - 1], next = pts[i + 1];
-      const before = prev ? prev.m : p.m, after = next ? next.m : p.m;
-      let above = p.m >= (before + after) / 2;        // peak-ish → label above
+      const before = pts[i - 1] ? pts[i - 1].m : p.m, after = pts[i + 1] ? pts[i + 1].m : p.m;
       const x = X(p.km), y = Y(p.m);
-      if (!above && y + 41 > floorY) above = true;    // no room underneath
 
-      let ly = above ? y - 20 : y + 28;
-      for (let guard = 0; guard < 8; guard++) {
-        const clash = placed.some(q =>
-          Math.abs(q.x - x) < halfW(p.name) + q.halfW && Math.abs(q.ly - ly) < LBL_H);
-        if (!clash) break;
-        ly += above ? -LBL_H : LBL_H;
+      /* Try the natural side (above on peaks, below in troughs). If pushing it
+         clear of its neighbours would run it off the plot, use the other side. */
+      const resolve = up => {
+        let ly = up ? y - 18 : y + 26;
+        for (let g = 0; g < 8; g++) {
+          if (!placed.some(q => Math.abs(q.x - x) < halfW(p.name) + q.hw && Math.abs(q.ly - ly) < LBL_H)) break;
+          ly += up ? -LBL_H : LBL_H;
+        }
+        return ly;
+      };
+      const fits = (ly, up) => up ? ly - 12 > M.t - 26 : ly + 12 < floorY;
+
+      let above = p.m >= (before + after) / 2;
+      let ly = resolve(above);
+      if (!fits(ly, above)) {
+        const alt = resolve(!above);
+        if (fits(alt, !above)) { above = !above; ly = alt; }
       }
-      placed.push({ x, ly, halfW: halfW(p.name) });
-      return { x, y, ly, anchor: x > W - 130 ? 'end' : x < M.l + 50 ? 'start' : 'middle' };
+      placed.push({ x, ly, hw: halfW(p.name) });
+      return { x, y, ly, anchor: x > W - 120 ? 'end' : x < M.l + 46 ? 'start' : 'middle' };
     });
 
-    let dots = '';
-    pts.forEach((p, i) => {
-      const s = dot(p), { x, y, ly, anchor } = labels[i];
-      dots += `<g class="pt" data-i="${i}">
-          <circle cx="${x}" cy="${y}" r="${s.r}" fill="${s.fill}"
-                  stroke="${s.stroke}" stroke-width="${s.sw}"
-                  ${s.dash ? `stroke-dasharray="${s.dash}"` : ''}/>
-          <text class="pt-label" x="${x}" y="${ly}" text-anchor="${anchor}">${p.name}</text>
-          <text class="pt-elev" x="${x}" y="${ly + 13}" text-anchor="${anchor}" data-m="${p.m}"></text>
-        </g>`;
-    });
+    const colour = p => p.summit ? '#8c3a2b' : p.peak ? '#a68a6d'
+                      : p.camp ? '#3d5f73' : p.skipped ? '#efe9dc' : '#9b937f';
+    const dots = pts.map((p, i) => {
+      const { x, y, ly, anchor } = labels[i];
+      const c = colour(p), r = p.summit ? 6 : (p.camp || p.peak) ? 5 : 3.4;
+      return `<g class="pt" data-i="${i}">
+        <circle cx="${x}" cy="${y}" r="${r}" fill="${c}"
+          stroke="${p.skipped ? '#9b937f' : c}" stroke-width="${p.skipped ? 1.4 : 0}"
+          ${p.skipped ? 'stroke-dasharray="2.5 2"' : ''}/>
+        ${p.summit ? `<circle cx="${x}" cy="${y}" r="10" fill="none" stroke="#8c3a2b" stroke-width="1"/>` : ''}
+        <text class="pt-label" x="${x}" y="${ly}" text-anchor="${anchor}">${p.name}</text>
+        <text class="pt-elev" x="${x}" y="${ly + 12}" text-anchor="${anchor}" data-m="${p.m}"></text>
+      </g>`;
+    }).join('');
 
     $('#profile-chart').innerHTML = `
       <svg viewBox="0 0 ${W} ${H}" role="img"
            aria-label="Elevation profile of the seven-day Lemosho route">
         <defs>
-          <linearGradient id="trackGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"   stop-color="#6f9e6b"/>
-            <stop offset="45%"  stop-color="#8fd3e8"/>
-            <stop offset="70%"  stop-color="#f2a65a"/>
-            <stop offset="100%" stop-color="#6f9e6b"/>
-          </linearGradient>
-          <linearGradient id="fillGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stop-color="rgba(143,211,232,.22)"/>
-            <stop offset="100%" stop-color="rgba(143,211,232,0)"/>
-          </linearGradient>
+          <pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="#22201b" stroke-width=".7" opacity=".2"/>
+          </pattern>
         </defs>
         ${band}${grid}
         <path class="track-fill" d="${area}"/>
         <path class="track" d="${line}"/>
-        ${dots}${ticks}
-        <line class="ax-line" x1="${M.l}" y1="${M.t + ih}" x2="${W - M.r}" y2="${M.t + ih}"/>
+        ${dots}${strip}${ticks}
+        <line class="ax-line" x1="${M.l}" y1="${M.t + ih}" x2="${W - M.r}" y2="${M.t + ih}"
+              stroke="#22201b" stroke-width="1.2"/>
       </svg>`;
 
-    // Elevation text inside the SVG follows the unit toggle too.
-    $$('#profile-chart .pt-elev').forEach(n => regElev(n, +n.dataset.m, m => comma(toUnit(m))));
-    $$('#profile-chart [data-gridm]').forEach(n =>
-      regElev(n, +n.dataset.gridm, m => comma(toUnit(m))));
+    $$('#profile-chart .pt-elev').forEach(n => reg(n, +n.dataset.m, v => comma(toUnit(v))));
+    $$('#profile-chart [data-gridm]').forEach(n => reg(n, +n.dataset.gridm, v => comma(toUnit(v))));
 
-    /* Tooltip */
-    const holder = $('.profile-holder');
-    holder.style.position = 'relative';
-    const tip = document.createElement('div');
-    tip.className = 'profile-tip';
-    holder.appendChild(tip);
-
-    const show = (e, p) => {
-      tip.innerHTML = `<b>${p.name}</b>
-        <span class="tip-el">${elev(p.m)} · km ${p.km} · day ${p.day}</span>
-        <p>${p.note}</p>`;
-      const box = holder.getBoundingClientRect();
-      tip.style.left = (e.clientX - box.left + holder.scrollLeft) + 'px';
-      tip.style.top  = (e.clientY - box.top) + 'px';
-      tip.classList.add('on');
-    };
-    $$('#profile-chart .pt').forEach(g => {
-      const p = pts[+g.dataset.i];
-      g.addEventListener('mouseenter', e => show(e, p));
-      g.addEventListener('mousemove',  e => show(e, p));
-      g.addEventListener('mouseleave', () => tip.classList.remove('on'));
-      g.addEventListener('click', () => {
-        const sec = $('#day' + p.day);
-        if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
+    attachTip($('#profile .chart-holder'), '#profile-chart .pt', i => {
+      const p = pts[i];
+      return {
+        html: `<b>${p.name}</b><span class="tip-el">${elev(p.m)} · ${dist(p.km)} in · day ${p.day}</span>
+               <p>${p.note}</p>`,
+        day: p.day,
+      };
     });
   }
 
-  /* ── blood oxygen ───────────────────────────────────────────── */
+  /* ── pulse oximetry ─────────────────────────────────────────── */
   function renderOxygen() {
     const host = $('#oxygen-chart');
-    if (!host) return;
     const read = TRIP.days.filter(d => d.spo2);
-    if (!read.length) return;
+    if (!host || read.length < 2) return;
 
-    const W = 1000, H = 360;
-    // Wide right margin: the zone captions live outside the plot so they can
-    // never collide with the trace, and the last reading sits on the boundary.
-    const M = { t: 34, r: 104, b: 62, l: 56 };
+    const W = 1000, H = 350;
+    const M = { t: 30, r: 108, b: 58, l: 54 };
     const iw = W - M.l - M.r, ih = H - M.t - M.b;
     const lo = 25, hi = 100;
-    const X = i => M.l + (read.length === 1 ? iw / 2 : (i / (read.length - 1)) * iw);
+    const X = i => M.l + (i / (read.length - 1)) * iw;
     const Y = v => M.t + (1 - (v - lo) / (hi - lo)) * ih;
 
-    // Clinical reference bands, lightest to most severe.
-    const zones = [
-      [90, 100, 'rgba(111,158,107,.13)', 'normal'],
-      [80, 90,  'rgba(242,166,90,.10)',  'hypoxemia'],
-      [60, 80,  'rgba(239,125,61,.12)',  'severe'],
-      [lo, 60,  'rgba(214,69,69,.16)',   'critical'],
-    ];
-    const bands = zones.map(([a, b, fill, label]) => `
-      <rect x="${M.l}" y="${Y(b)}" width="${iw}" height="${Y(a) - Y(b)}" fill="${fill}"/>
-      <text class="zone-label" x="${M.l + iw + 12}" y="${(Y(a) + Y(b)) / 2 + 4}"
-            text-anchor="start">${label}</text>`).join('');
+    const zones = [[90, 100, '#5f7a55', 'normal'], [80, 90, '#9a8f5f', 'hypoxemia'],
+                   [60, 80, '#a68a6d', 'severe'], [lo, 60, '#8c3a2b', 'critical']];
+    const bands = zones.map(([a, b, c, label]) => `
+      <rect x="${M.l}" y="${Y(b)}" width="${iw}" height="${Y(a) - Y(b)}" fill="${c}" opacity=".16"/>
+      <text class="zone-label" x="${M.l + iw + 12}" y="${(Y(a) + Y(b)) / 2 + 4}">${label}</text>`).join('');
 
     let grid = '';
     for (let v = 30; v <= 100; v += 10) {
-      grid += `<line class="ax-line" x1="${M.l}" y1="${Y(v)}" x2="${W - M.r}" y2="${Y(v)}"/>
+      grid += `<line class="ax-line" x1="${M.l}" y1="${Y(v)}" x2="${M.l + iw}" y2="${Y(v)}"/>
                <text class="ax-label" x="${M.l - 11}" y="${Y(v) + 4}" text-anchor="end">${v}%</text>`;
     }
 
     const line = read.map((d, i) => `${i ? 'L' : 'M'}${X(i)},${Y(d.spo2)}`).join(' ');
-
     let dots = '', drop = '';
     read.forEach((d, i) => {
       const x = X(i), y = Y(d.spo2);
       dots += `<g class="ox-pt" data-day="${d.n}">
-          <circle cx="${x}" cy="${y}" r="6" fill="#0b0f14" stroke="var(--ice)" stroke-width="2.5"/>
-          <text class="ox-val" x="${x}" y="${y - 16}" text-anchor="middle">${d.spo2}%</text>
-        </g>`;
-
-      // Summit day carries a second, much lower reading: the collapse.
+          <circle cx="${x}" cy="${y}" r="5.5" fill="#efe9dc" stroke="#22201b" stroke-width="1.8"/>
+          <text class="ox-val" x="${x}" y="${y - 15}" text-anchor="middle">${d.spo2}%</text></g>`;
       if (d.spo2Low) {
         const yl = Y(d.spo2Low);
-        drop += `
-          <line x1="${x}" y1="${y}" x2="${x}" y2="${yl}" stroke="var(--crit)"
-                stroke-width="2" stroke-dasharray="4 4"/>
-          <g class="ox-pt is-crit" data-day="${d.n}">
-            <circle cx="${x}" cy="${yl}" r="8" fill="var(--crit)"
-                    stroke="rgba(214,69,69,.28)" stroke-width="7"/>
-            <text class="ox-crit" x="${x - 18}" y="${yl + 5}" text-anchor="end">${d.spo2Low}% · passed out</text>
-          </g>`;
+        drop += `<line x1="${x}" y1="${y}" x2="${x}" y2="${yl}" stroke="#8c3a2b"
+                   stroke-width="1.4" stroke-dasharray="3 3"/>
+                 <g class="ox-pt" data-day="${d.n}">
+                   <circle cx="${x}" cy="${yl}" r="6.5" fill="#8c3a2b"/>
+                   <circle cx="${x}" cy="${yl}" r="11" fill="none" stroke="#8c3a2b" stroke-width="1"/>
+                   <text class="ox-crit" x="${x - 20}" y="${yl + 4}" text-anchor="end">${d.spo2Low}% · passed out</text>
+                 </g>`;
       }
     });
 
     const ticks = read.map((d, i) =>
-      `<text class="daytick" x="${X(i)}" y="${M.t + ih + 30}" text-anchor="middle">DAY ${d.n}</text>`).join('');
+      `<text class="daytick" x="${X(i)}" y="${M.t + ih + 28}" text-anchor="middle">DAY ${d.n}</text>`).join('');
 
     host.innerHTML = `
       <svg viewBox="0 0 ${W} ${H}" role="img"
-           aria-label="Blood oxygen saturation falling from 89% on day one to the 30s at the summit">
+           aria-label="Blood oxygen falling from 89% on day one to the 30s at the summit">
         ${bands}${grid}
-        <path d="${line}" fill="none" stroke="var(--ice)" stroke-width="2.5"
+        <path d="${line}" fill="none" stroke="#22201b" stroke-width="1.8"
               stroke-linejoin="round" stroke-linecap="round"/>
         ${drop}${dots}${ticks}
-        <line class="ax-line" x1="${M.l}" y1="${M.t + ih}" x2="${W - M.r}" y2="${M.t + ih}"/>
+        <line class="ax-line" x1="${M.l}" y1="${M.t + ih}" x2="${M.l + iw}" y2="${M.t + ih}"
+              stroke="#22201b" stroke-width="1.2"/>
       </svg>`;
 
-    $$('#oxygen-chart .ox-pt').forEach(g => g.addEventListener('click', () => {
-      const sec = $('#day' + g.dataset.day);
-      if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }));
+    $$('#oxygen-chart .ox-pt').forEach(g => g.addEventListener('click', () => jumpToDay(g.dataset.day)));
   }
+
+  /* ── shared chart tooltip ───────────────────────────────────── */
+  function attachTip(holder, selector, build) {
+    if (!holder) return;
+    const tip = document.createElement('div');
+    tip.className = 'chart-tip';
+    holder.appendChild(tip);
+    $$(selector).forEach(g => {
+      const { html, day } = build(+g.dataset.i);
+      const show = e => {
+        tip.innerHTML = html;
+        const box = holder.getBoundingClientRect();
+        tip.style.left = (e.clientX - box.left + holder.scrollLeft) + 'px';
+        tip.style.top  = (e.clientY - box.top) + 'px';
+        tip.classList.add('on');
+      };
+      g.addEventListener('mouseenter', show);
+      g.addEventListener('mousemove', show);
+      g.addEventListener('mouseleave', () => tip.classList.remove('on'));
+      g.addEventListener('click', () => jumpToDay(day));
+    });
+  }
+  const jumpToDay = n => {
+    const sec = $('#day' + n);
+    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   /* ── ledger ─────────────────────────────────────────────────── */
   function renderLedger() {
-    // Total vertical, walked in order, across the whole trek.
-    const all = TRIP.days.flatMap(d => d.points).filter(p => !p.skipped);
-    let gain = 0, loss = 0;
-    for (let i = 1; i < all.length; i++) {
-      const d = all[i].m - all[i - 1].m;
-      if (d > 0) gain += d; else loss -= d;
-    }
-
+    const { gain, loss } = totals(), f = TRIP.facts;
     const rows = [
-      [comma(toUnit(TRIP.facts.summitElevation)), 'highest point', TRIP.facts.summitElevation],
-      ['+' + comma(toUnit(gain)), 'total ascent', gain],
-      ['−' + comma(toUnit(loss)), 'total descent', loss],
-      [TRIP.facts.distanceKm + ' km', 'distance walked', null],
-      [comma(toUnit(TRIP.facts.highestSleep)), 'highest camp', TRIP.facts.highestSleep],
-      [TRIP.facts.nightsOnMountain, 'nights on the mountain', null],
-      ['11 h', 'from 3 a.m. to the summit', null],
-      ['19 h', 'longest day, start to tent', null],
-      [TRIP.facts.startSpo2 + '% → ' + TRIP.facts.summitSpo2 + '%', 'blood oxygen, day 1 to summit', null],
-      ['1', 'camp skipped', null],
-      ['5', 'climate zones crossed', null],
-      ['~49%', 'of sea-level oxygen at the top', null],
+      [f.summitElevation,     'highest point',                v => comma(toUnit(v))],
+      [gain,                  'total ascent',                 v => '+' + comma(toUnit(v))],
+      [loss,                  'total descent',                v => '−' + comma(toUnit(v))],
+      [f.distanceKm,          'distance walked',              dist],
+      [f.highestSleep,        'highest camp',                 v => comma(toUnit(v))],
+      [f.nightsOnMountain,    'nights on the mountain',       String],
+      [11,                    'hours from 3 am to the summit', String],
+      [19,                    'hours in the longest day',     String],
+      [f.summitSpo2,          'lowest blood oxygen',          v => v + '%'],
+      [1,                     'camp skipped',                 String],
+      [5,                     'climate zones crossed',        String],
+      ['~49%',                'of sea-level oxygen up there', String],
     ];
-
-    $('#ledgerGrid').innerHTML = rows.map(([v, l, m]) =>
-      `<div><b ${m != null ? `data-m="${m}"` : ''}>${v}</b><span>${l}</span></div>`).join('');
-
-    $$('#ledgerGrid b[data-m]').forEach(n => {
-      const sign = n.textContent.trim()[0];
-      regElev(n, +n.dataset.m,
-        m => (sign === '+' || sign === '−' ? sign : '') + comma(toUnit(m)));
-    });
+    $('#ledgerGrid').innerHTML = rows.map(([, lbl]) => `<div><b></b><span>${lbl}</span></div>`).join('');
+    $$('#ledgerGrid b').forEach((b, i) => reg(b, rows[i][0], rows[i][2]));
   }
 
-  /* ── galleries ──────────────────────────────────────────────── */
+  /* ── photo plates ───────────────────────────────────────────── */
   const FULL = 'assets/photos/full/', THUMB = 'assets/photos/thumb/';
-  let lightboxSet = [], lightboxIdx = 0;
+  let lbSet = [], lbIdx = 0;
+
+  const roman = n => {
+    const map = [[10, 'x'], [9, 'ix'], [5, 'v'], [4, 'iv'], [1, 'i']];
+    let out = '';
+    for (const [v, s] of map) while (n >= v) { out += s; n -= v; }
+    return out;
+  };
 
   async function renderGalleries() {
     let photos = [];
-    try {
-      const res = await fetch('data/photos.json');
-      photos = await res.json();
-    } catch { return; }               // opened via file://, galleries stay empty
+    try { photos = await (await fetch('data/photos.json')).json(); }
+    catch { return; }                       // opened via file://, plates stay empty
 
-    const byDate = photos.reduce((acc, p) => ((acc[p.date] ??= []).push(p), acc), {});
+    const byDate = photos.reduce((a, p) => ((a[p.date] ??= []).push(p), a), {});
 
     $$('.gallery').forEach(host => {
       const list = byDate[host.dataset.date];
       if (!list || !list.length) return;
 
-      const FIRST = 8;
-      host.innerHTML = `<h3>${list.length} frame${list.length > 1 ? 's' : ''} from this day</h3>
-                        <div class="grid"></div>
-                        ${list.length > FIRST ? `<button class="more">Show all ${list.length}</button>` : ''}`;
-      const grid = $('.grid', host);
+      const FIRST = 6;
+      host.innerHTML = `<h3>Plates · ${list.length} frame${list.length > 1 ? 's' : ''} from this day</h3>
+        <div class="plates"></div>
+        ${list.length > FIRST ? `<button class="more">Show all ${list.length}</button>` : ''}`;
+      const grid = $('.plates', host);
 
       const tile = (p, i) => {
-        const b = document.createElement('button');
-        b.className = 'shot';
-        b.innerHTML = `<img loading="lazy" src="${THUMB + p.file}" alt="Day photo at ${fmtTime(p.time)}">
-                       <time>${fmtTime(p.time)}</time>`;
-        const img = $('img', b);
+        const fig = document.createElement('button');
+        fig.className = 'plate';
+        fig.innerHTML = `<img loading="lazy" src="${THUMB + p.file}" alt="Photograph taken at ${fmtTime(p.time)}">
+          <figcaption>Pl. ${roman(i + 1)} · ${fmtTime(p.time)}</figcaption>`;
+        const img = $('img', fig);
         img.addEventListener('load', () => img.classList.add('loaded'));
         if (img.complete) img.classList.add('loaded');
-        b.addEventListener('click', () => openLightbox(list, i));
-        return b;
+        fig.addEventListener('click', () => openLightbox(list, i));
+        return fig;
       };
 
       list.slice(0, FIRST).forEach((p, i) => grid.appendChild(tile(p, i)));
@@ -446,29 +450,18 @@
 
   /* ── lightbox ───────────────────────────────────────────────── */
   const lb = $('#lightbox'), lbImg = $('#lbImg'), lbCap = $('#lbCap');
-
   function openLightbox(set, i) {
-    lightboxSet = set;
-    lightboxIdx = i;
-    paintLightbox();
-    lb.hidden = false;
-    document.body.style.overflow = 'hidden';
+    lbSet = set; lbIdx = i; paintLightbox();
+    lb.hidden = false; document.body.style.overflow = 'hidden';
   }
   function paintLightbox() {
-    const p = lightboxSet[lightboxIdx];
+    const p = lbSet[lbIdx];
     lbImg.src = FULL + p.file;
-    lbImg.alt = `Photo taken at ${fmtTime(p.time)} on ${p.date}`;
-    lbCap.textContent = `${fmtDate(p.date)} · ${fmtTime(p.time)} · ${lightboxIdx + 1}/${lightboxSet.length}`;
+    lbImg.alt = `Photograph taken at ${fmtTime(p.time)} on ${p.date}`;
+    lbCap.textContent = `${fmtDate(p.date)} · ${fmtTime(p.time)} · ${lbIdx + 1} of ${lbSet.length}`;
   }
-  const step = d => {
-    lightboxIdx = (lightboxIdx + d + lightboxSet.length) % lightboxSet.length;
-    paintLightbox();
-  };
-  const closeLightbox = () => {
-    lb.hidden = true;
-    lbImg.src = '';
-    document.body.style.overflow = '';
-  };
+  const step = d => { lbIdx = (lbIdx + d + lbSet.length) % lbSet.length; paintLightbox(); };
+  const closeLightbox = () => { lb.hidden = true; lbImg.src = ''; document.body.style.overflow = ''; };
 
   $('.lb-close').addEventListener('click', closeLightbox);
   $('.lb-prev').addEventListener('click', () => step(-1));
@@ -481,47 +474,19 @@
     if (e.key === 'ArrowLeft') step(-1);
   });
 
-  /* ── hero counters + scroll reveal ──────────────────────────── */
-  function heroCounters() {
-    $$('.hero-stats b[data-count]').forEach(el => {
-      const target = +el.dataset.count;
-      const isElev = el.hasAttribute('data-elev');
-      const paint = v => el.textContent = comma(Math.round(v));
-      if (isElev) regElev(el, target, m => comma(toUnit(m)));
-
-      const t0 = performance.now(), dur = 1400;
-      const tick = now => {
-        const k = Math.min(1, (now - t0) / dur);
-        const eased = 1 - Math.pow(1 - k, 3);
-        paint((isElev ? toUnit(target) : target) * eased);
-        if (k < 1) requestAnimationFrame(tick);
-      };
-      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) requestAnimationFrame(tick);
-      else paint(isElev ? toUnit(target) : target);
-    });
-  }
-
-  function reveals() {
-    const io = new IntersectionObserver(entries => {
-      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
-    }, { rootMargin: '0px 0px -12% 0px' });
-    $$('.reveal').forEach(el => io.observe(el));
-  }
-
   /* ── boot ───────────────────────────────────────────────────── */
+  renderRail();
   renderDays();
   renderProfile();
   renderOxygen();
   renderLedger();
   renderGalleries();
-  heroCounters();
-  reveals();
 
   $('#unitToggle').addEventListener('click', e => {
     const b = e.target.closest('button');
     if (!b || b.dataset.unit === unit) return;
     unit = b.dataset.unit;
     $$('#unitToggle button').forEach(x => x.classList.toggle('on', x === b));
-    repaintElev();
+    repaint();
   });
 })();

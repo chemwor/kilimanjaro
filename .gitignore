@@ -14,3 +14,6 @@
 *.log
 node_modules/
 .netlify/
+
+# Throwaway design mockups, not part of the deploy
+preview/

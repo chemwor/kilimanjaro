@@ -9,105 +9,126 @@
 </head>
 <body>
 
+<!-- contour field -->
+<svg class="topo-bg" aria-hidden="true"><defs>
+  <pattern id="cont" width="420" height="330" patternUnits="userSpaceOnUse">
+    <g fill="none" stroke="#c9bda2" stroke-width="1">
+      <path d="M-20,60  C70,10  145,115 225,52  C295,0   345,95  440,42"/>
+      <path d="M-20,92  C70,42  145,147 225,84  C295,32  345,127 440,74"/>
+      <path d="M-20,124 C70,74  145,179 225,116 C295,64  345,159 440,106"/>
+      <path d="M-20,158 C62,96  135,208 215,146 C288,92  340,190 440,138"/>
+      <path d="M-20,190 C62,128 135,240 215,178 C288,124 340,222 440,170"/>
+      <path d="M-20,224 C62,162 135,274 215,212 C288,158 340,256 440,204"/>
+      <path d="M-20,258 C62,196 135,308 215,246 C288,192 340,290 440,238"/>
+      <path d="M-20,294 C62,232 135,344 215,282 C288,228 340,326 440,274"/>
+    </g>
+  </pattern></defs>
+  <rect width="100%" height="100%" fill="url(#cont)"/>
+</svg>
+
 <div class="unit-toggle" id="unitToggle" role="group" aria-label="Elevation units">
-  <button data-unit="m" class="on">m</button>
-  <button data-unit="ft">ft</button>
+  <button data-unit="m">m</button>
+  <button data-unit="ft" class="on">ft</button>
 </div>
 
-<header class="hero" id="top">
-  <div class="hero-sky" aria-hidden="true">
-    <div class="stars"></div>
-    <div class="glow"></div>
-    <svg class="ridge" viewBox="0 0 1440 420" preserveAspectRatio="none" aria-hidden="true">
-      <path class="ridge-far" d="M0,300 L180,250 L320,275 L470,190 L620,120 L700,96 L790,110 L900,175 L1050,215 L1200,180 L1320,225 L1440,205 L1440,420 L0,420 Z"/>
-      <path class="ridge-near" d="M0,360 L160,330 L300,348 L450,300 L600,262 L760,290 L880,268 L1020,310 L1180,285 L1320,325 L1440,305 L1440,420 L0,420 Z"/>
-    </svg>
+<!-- ── map collar / masthead ──────────────────────────────────── -->
+<header class="collar hero" id="top">
+  <div class="collar-top">
+    <span>Kilimanjaro National Park · Tanzania</span>
+    <span>03°04′S 37°21′E</span>
+    <span>Sheet 1 · Lemosho Route</span>
+    <span>24–30 June 2026</span>
   </div>
+  <div class="collar-body">
+    <h1>Kilimanjaro<span class="sub">Lemosho Route · Seven Days · Uhuru Peak</span></h1>
 
-  <div class="hero-inner">
-    <p class="kicker">Lemosho Route · June 2026</p>
-    <h1>Kilimanjaro</h1>
     <p class="lede">Eight days of walking, done in seven: a stomach bug, a stinging nettle,
       a wall you climb with your hands, and one very long night. From a rainforest gate at
-      2,100&nbsp;m to the roof of Africa, and back down in a hurry.</p>
+      6,890&nbsp;ft to the roof of Africa, and back down in a hurry.</p>
 
-    <div class="hero-stats">
-      <div><b data-count="5895" data-elev>5,895</b><span>summit metres</span></div>
-      <div><b data-count="65">65</b><span>km on foot</span></div>
-      <div><b data-count="7">7</b><span>days</span></div>
-      <div><b>2:10 pm</b><span>stood on the summit</span></div>
+    <div class="rail" id="heroRail"></div>
+
+    <div class="key">
+      <div style="background:#3f5c37">Rainforest</div>
+      <div style="background:#5f7a55">Heather</div>
+      <div style="background:#9a8f5f">Moorland</div>
+      <div style="background:#a68a6d">Alpine desert</div>
+      <div style="background:#5b7f96">Arctic</div>
     </div>
 
-    <a class="scroll-cue" href="#profile"><span>Come with us</span><i></i></a>
+    <a class="scroll-cue" href="#profile">Come with us ↓</a>
   </div>
 </header>
 
 <main>
 
-  <!-- ── Full-route elevation profile ─────────────────────────────── -->
-  <section class="profile-section" id="profile">
-    <div class="wrap">
-      <p class="eyebrow">The whole climb, end to end</p>
+  <!-- ── elevation profile ────────────────────────────────────── -->
+  <section class="sheet-block" id="profile">
+    <div class="sheet-head">
+      <span class="stamp">Fig. 1</span>
+      <span class="head-meta">Elevation profile · gate to gate</span>
+    </div>
+    <div class="sheet-inner">
       <h2>Seven days of up</h2>
       <p class="section-note">
-        Every camp, pass and peak we touched, plotted against distance walked. Hover or tap any
-        point. The bright band is the summit push.
+        Every camp, pass and peak we touched, plotted against the ground we covered.
+        Hover or tap any station. The shaded band is the summit push.
       </p>
-    </div>
-    <div class="profile-holder">
-      <div id="profile-chart"></div>
-    </div>
-    <div class="wrap profile-legend">
-      <span><i class="k-camp"></i>camp</span>
-      <span><i class="k-high"></i>high point</span>
-      <span><i class="k-skip"></i>camp we skipped</span>
-      <span><i class="k-summit"></i>summit</span>
+      <div class="chart-holder"><div id="profile-chart"></div></div>
+      <div class="legend">
+        <span><i class="k-camp">△</i>camp</span>
+        <span><i class="k-high">▲</i>high point</span>
+        <span><i class="k-skip">△</i>camp we skipped</span>
+        <span><i class="k-summit">◆</i>summit</span>
+      </div>
     </div>
   </section>
 
-  <!-- ── Blood oxygen ─────────────────────────────────────────────── -->
-  <section class="oxygen-section" id="oxygen">
-    <div class="wrap">
-      <p class="eyebrow">The other line on the mountain</p>
+  <!-- ── blood oxygen ─────────────────────────────────────────── -->
+  <section class="sheet-block" id="oxygen">
+    <div class="sheet-head">
+      <span class="stamp">Fig. 2</span>
+      <span class="head-meta">Pulse oximetry · one reading per day</span>
+    </div>
+    <div class="sheet-inner">
       <h2>What the air was doing to us</h2>
       <p class="section-note">
-        A pulse oximeter reading taken each day on the trek. At sea level you sit at
-        95–100%. The mountain took it from 89% to the 30s, and the 30s is where
-        the summit stopped being a hike and became an emergency. Tap a point for that day.
+        At sea level you sit at 95–100%. The mountain took it from 89% to the 30s, and the
+        30s is where the summit stopped being a hike and became an emergency. Tap a reading
+        for that day.
       </p>
-    </div>
-    <div class="profile-holder">
-      <div id="oxygen-chart"></div>
+      <div class="chart-holder"><div id="oxygen-chart"></div></div>
     </div>
   </section>
 
-  <!-- ── Day sections, rendered from data/trip.js ─────────────────── -->
+  <!-- ── day sheets, rendered from data/trip.js ───────────────── -->
   <div id="days"></div>
 
-  <!-- ── Closing ledger ───────────────────────────────────────────── -->
-  <section class="ledger" id="ledger">
-    <div class="wrap">
-      <p class="eyebrow">What it added up to</p>
+  <!-- ── ledger ───────────────────────────────────────────────── -->
+  <section class="sheet-block" id="ledger">
+    <div class="sheet-head">
+      <span class="stamp">Summary</span>
+      <span class="head-meta">What it added up to</span>
+    </div>
+    <div class="sheet-inner">
       <h2>The ledger</h2>
       <div class="ledger-grid" id="ledgerGrid"></div>
       <p class="outro">
         Kilimanjaro is the tallest freestanding mountain on earth. No range holds it up, just
         3,000&nbsp;vertical metres of volcano standing alone on a plain. You walk through five
-        climate zones to get up it: rainforest, heather, moorland, alpine desert, arctic. Four days
-        out of the trees and one very long night, and you are standing on the top of a continent.
+        climate zones to get up it: rainforest, heather, moorland, alpine desert, arctic. Four
+        days out of the trees and one very long night, and you are standing on the top of a
+        continent.
       </p>
     </div>
   </section>
 </main>
 
 <footer>
-  <div class="wrap">
-    <p>Lemosho Route · 24–30 June 2026 · Uhuru Peak reached 29 June</p>
-    <a href="#top">Back to the gate ↑</a>
-  </div>
+  <span>Lemosho Route · 24–30 June 2026 · Uhuru Peak reached 29 June</span>
+  <a href="#top">Back to the gate ↑</a>
 </footer>
 
-<!-- Lightbox -->
 <div class="lightbox" id="lightbox" hidden>
   <button class="lb-close" aria-label="Close">✕</button>
   <button class="lb-prev" aria-label="Previous">‹</button>
