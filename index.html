@@ -31,8 +31,22 @@
   <button data-unit="ft" class="on">ft</button>
 </div>
 
+<!-- ── full-bleed cover ───────────────────────────────────────── -->
+<section class="cover" id="top">
+  <div class="cover-img"><img id="coverImg" alt="Kibo seen from the alpine desert" fetchpriority="high"></div>
+  <div class="cover-type">
+    <p class="cover-rag"><span>Lemosho Route</span><span>Tanzania</span><span>June 2026</span></p>
+    <div>
+      <h1 class="cover-title">Kilimanjaro</h1>
+      <p class="cover-deck">Eight days of walking, done in seven. From a rainforest gate at
+        6,890&nbsp;ft to the roof of Africa, and back down in a hurry.</p>
+      <a class="cover-cue" href="#collar">Come with us <i>↓</i></a>
+    </div>
+  </div>
+</section>
+
 <!-- ── map collar / masthead ──────────────────────────────────── -->
-<header class="collar hero" id="top">
+<header class="collar" id="collar">
   <div class="collar-top">
     <span>Kilimanjaro National Park · Tanzania</span>
     <span>03°04′S 37°21′E</span>
@@ -40,11 +54,9 @@
     <span>24–30 June 2026</span>
   </div>
   <div class="collar-body">
-    <h1>Kilimanjaro<span class="sub">Lemosho Route · Seven Days · Uhuru Peak</span></h1>
-
-    <p class="lede">Eight days of walking, done in seven: a stomach bug, a stinging nettle,
-      a wall you climb with your hands, and one very long night. From a rainforest gate at
-      6,890&nbsp;ft to the roof of Africa, and back down in a hurry.</p>
+    <p class="lede">A stomach bug, a stinging nettle, monkeys fighting at three in the morning,
+      a wall you climb with your hands, and one very long night that ended on an oxygen tank.
+      This is all seven days of it, camp by camp.</p>
 
     <div class="rail" id="heroRail"></div>
 
@@ -55,8 +67,6 @@
       <div style="background:#a68a6d">Alpine desert</div>
       <div style="background:#5b7f96">Arctic</div>
     </div>
-
-    <a class="scroll-cue" href="#profile">Come with us ↓</a>
   </div>
 </header>
 
@@ -101,7 +111,7 @@
     </div>
   </section>
 
-  <!-- ── day sheets, rendered from data/trip.js ───────────────── -->
+  <!-- ── day openers + sheets, rendered from data/trip.js ─────── -->
   <div id="days"></div>
 
   <!-- ── ledger ───────────────────────────────────────────────── -->
@@ -128,6 +138,16 @@
   <span>Lemosho Route · 24–30 June 2026 · Uhuru Peak reached 29 June</span>
   <a href="#top">Back to the gate ↑</a>
 </footer>
+
+<!-- ── altitude HUD: where you are as you scroll ──────────────── -->
+<div class="hud" id="hud" aria-hidden="true">
+  <div class="hud-read">
+    <b id="hudElev"></b>
+    <span id="hudWhere"></span>
+  </div>
+  <div class="hud-track"><div id="hudChart"></div></div>
+  <div class="hud-zone"><i id="hudSwatch"></i><span id="hudZone"></span></div>
+</div>
 
 <div class="lightbox" id="lightbox" hidden>
   <button class="lb-close" aria-label="Close">✕</button>

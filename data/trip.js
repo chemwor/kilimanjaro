@@ -17,6 +17,7 @@ const TRIP = {
   title: "Kilimanjaro",
   subtitle: "Lemosho Route · seven days · June 2026",
   summitDate: "2026-06-29",
+  cover: "IMG_3673",
 
   facts: {
     summitElevation: 5895,
@@ -30,9 +31,24 @@ const TRIP = {
     summitSpo2: 32,
   },
 
+  /* Full-bleed moments between days. `after` is the day number they follow. */
+  interstitials: [
+    { after: 4, image: "IMG_3689",
+      quote: "There is no way I am getting up that.",
+      caption: "Barranco Camp, 4:41 pm. The Wall is the skyline you are looking at." },
+    { after: 5, image: "IMG_3711",
+      quote: "Above the clouds, with the city lights showing through the gaps.",
+      caption: "Barafu Camp, 5:56 pm, 15,331 ft. Summit push in nine hours." },
+    { after: 6, image: "IMG_3702",
+      quote: "It was the hardest thing I have ever done.",
+      caption: "The summit ridge from below" },
+  ],
+
   days: [
     {
       n: 1,
+      hero: "IMG_3624",
+      heroCaption: "Mti Mkubwa camp, first night under the canopy",
       date: "2026-06-24",
       label: "Into the rainforest",
       from: "Londorossi Gate",
@@ -61,6 +77,8 @@ const TRIP = {
     },
     {
       n: 2,
+      hero: "IMG_3636",
+      heroCaption: "Up the Shira Ridge, out of the trees for good",
       date: "2026-06-25",
       label: "Out of the trees",
       from: "Mti Mkubwa",
@@ -90,6 +108,8 @@ const TRIP = {
     },
     {
       n: 3,
+      hero: "IMG_3658",
+      heroCaption: "Crossing the Shira plateau, Kibo on the horizon all morning",
       date: "2026-06-26",
       label: "Across the plateau",
       from: "Shira 1 Camp",
@@ -116,6 +136,8 @@ const TRIP = {
     },
     {
       n: 4,
+      hero: "IMG_3687",
+      heroCaption: "The giant groundsels below Barranco",
       date: "2026-06-27",
       label: "Pole pole",
       from: "Shira 2 Camp",
@@ -146,6 +168,8 @@ const TRIP = {
     },
     {
       n: 5,
+      hero: "IMG_3696",
+      heroCaption: "Hands on rock. The Barranco Wall, 8:02 am",
       date: "2026-06-28",
       label: "The Wall, and then we didn't stop",
       from: "Barranco Camp",
@@ -182,6 +206,8 @@ const TRIP = {
     },
     {
       n: 6,
+      hero: "IMG_3727",
+      heroCaption: "Uhuru Peak, 2:10 pm. Minutes before it went wrong",
       date: "2026-06-29",
       label: "The roof of Africa",
       from: "Barafu Camp",
@@ -224,6 +250,8 @@ const TRIP = {
     },
     {
       n: 7,
+      hero: "IMG_3748",
+      heroCaption: "Back into the fog, and the mud",
       date: "2026-06-30",
       label: "Down through the mud",
       from: "Millennium Camp",

@@ -37,6 +37,20 @@
   };
 
   const pad2 = n => String(n).padStart(2, '0');
+  const HERO = 'assets/photos/hero/';
+
+  /* Climate-zone colours, keyed to the legend in the collar. */
+  const ZONES = [
+    [/rainforest/i, '#3f5c37'], [/heather/i, '#5f7a55'], [/moorland/i, '#9a8f5f'],
+    [/alpine|desert/i, '#a68a6d'], [/arctic|summit/i, '#5b7f96'],
+  ];
+  const zoneColour = z => (ZONES.find(([re]) => re.test(z || '')) || [, '#9a8f5f'])[1];
+
+  /* Fade a full-bleed photograph in once it has actually decoded. */
+  const fadeIn = img => {
+    if (img.complete) img.classList.add('in');
+    else img.addEventListener('load', () => img.classList.add('in'), { once: true });
+  };
   const symbolFor = p => p.summit ? '◆' : p.peak ? '▲' : (p.camp || p.skipped) ? '△' : '·';
 
   /* ── vertical accounting ────────────────────────────────────── */
@@ -63,6 +77,14 @@
     return { gain, loss };
   }
 
+  /* ── cover ──────────────────────────────────────────────────── */
+  function renderCover() {
+    const img = $('#coverImg');
+    if (!img || !TRIP.cover) return;
+    img.src = HERO + TRIP.cover + '.jpg';
+    fadeIn(img);
+  }
+
   /* ── masthead figures ───────────────────────────────────────── */
   function renderRail() {
     const f = TRIP.facts;
@@ -87,9 +109,40 @@
       const { gain, loss, end } = dayVertical(day, prevElev);
       prevElev = end;
 
+      /* Headline the day's high point when it beats the camp; that is the
+         story on Lava Tower day and on summit day. */
+      const high = day.points.reduce((a, p) => (p.m > a ? p.m : a), 0);
+      const peak = day.summit ? { m: high, label: 'summit' }
+                 : high > (day.sleepAt || 0) ? { m: high, label: 'high point' }
+                 : day.sleepAt ? { m: day.sleepAt, label: 'slept here' }
+                 : { m: high, label: 'end of day' };
+
+      /* Full-bleed opener: the photograph you arrive on before the record. */
+      const opener = document.createElement('section');
+      opener.className = 'opener';
+      opener.id = 'day' + day.n;
+      opener.innerHTML = `
+        <div class="opener-img">
+          <img alt="${day.label}" loading="${day.n > 2 ? 'lazy' : 'eager'}"
+               src="${HERO + (day.hero || TRIP.cover) + '.jpg'}">
+        </div>
+        <p class="opener-alt"><b data-alt="${peak.m}"></b>${peak.label}</p>
+        <div class="opener-type">
+          <p class="opener-day">
+            <span class="n">Day ${pad2(day.n)}</span>
+            <span>${fmtDate(day.date)}</span>
+            <span class="z">${day.zone}</span>
+          </p>
+          <h2>${day.label}</h2>
+          ${day.heroCaption ? `<p class="opener-cap">${day.heroCaption}</p>` : ''}
+        </div>`;
+      host.appendChild(opener);
+      fadeIn($('img', opener));
+      $$('.opener-alt b[data-alt]', opener).forEach(n => reg(n, +n.dataset.alt, elev));
+
       const sec = document.createElement('section');
       sec.className = 'sheet-block day' + (day.summit ? ' is-summit' : '');
-      sec.id = 'day' + day.n;
+      sec.style.setProperty('--zone', zoneColour(day.zone));
 
       const logbook = day.points.length ? `
         <table class="logbook">
@@ -133,13 +186,11 @@
       sec.innerHTML = `
         <div class="sheet-head">
           <span class="stamp">Day ${pad2(day.n)}</span>
-          <span class="head-meta">${fmtDate(day.date)}</span>
-          <span class="head-zone">${day.zone}</span>
+          <span class="head-meta"><b>${day.from}</b> <span class="arrow">→</span> <b>${day.to}</b></span>
+          <span class="head-zone">${day.distanceKm ? dist(day.distanceKm) : ''}</span>
         </div>
         <div class="entry-body">
           <div class="entry-main">
-            <h2>${day.label}</h2>
-            <p class="leg"><b>${day.from}</b> <span class="arrow">→</span> <b>${day.to}</b></p>
             <div class="prose">${paras}</div>
             ${day.highlight ? `<p class="pull">${day.highlight}</p>` : ''}
             ${logbook}
@@ -159,6 +210,7 @@
         <div class="gallery" data-date="${day.date}"></div>`;
 
       host.appendChild(sec);
+      addInterstitial(host, day.n);
 
       $$('.logbook .el[data-m]', sec).forEach(n => reg(n, +n.dataset.m, v => comma(toUnit(v)) + ' ' + unit));
       $$('.panel dd[data-log]', sec).forEach(n => {
@@ -378,6 +430,118 @@
     if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  /* ── interstitials ──────────────────────────────────────────── */
+  function addInterstitial(host, afterDay) {
+    (TRIP.interstitials || []).filter(i => i.after === afterDay).forEach(i => {
+      const el = document.createElement('section');
+      el.className = 'interstitial';
+      el.innerHTML = `
+        <img loading="lazy" alt="${i.caption}" src="${HERO + i.image + '.jpg'}">
+        <div class="inter-type">
+          <p class="inter-quote">${i.quote}</p>
+          <p class="inter-cap">${i.caption}</p>
+        </div>`;
+      host.appendChild(el);
+      fadeIn($('img', el));
+    });
+  }
+
+  /* ── altitude HUD ───────────────────────────────────────────── */
+  function renderHud() {
+    const hud = $('#hud');
+    if (!hud) return;
+
+    /* One walked polyline, and the km span each day covers. */
+    const pts = [];
+    TRIP.days.forEach(d => d.points.forEach(p => {
+      const last = pts[pts.length - 1];
+      if (last && last.km === p.km && last.m === p.m) return;
+      pts.push({ ...p, day: d.n });
+    }));
+    if (pts.length < 2) return;
+
+    let prevKm = 0;
+    const spans = TRIP.days.map(d => {
+      const kms = d.points.map(p => p.km);
+      const end = kms.length ? Math.max(...kms) : prevKm;
+      const span = { day: d, from: prevKm, to: end, zone: d.zone };
+      prevKm = end;
+      return span;
+    });
+
+    const kmMax = Math.max(...pts.map(p => p.km));
+    const elAt = km => {
+      if (km <= pts[0].km) return pts[0].m;
+      for (let i = 1; i < pts.length; i++) {
+        if (km <= pts[i].km) {
+          const a = pts[i - 1], b = pts[i];
+          const t = b.km === a.km ? 1 : (km - a.km) / (b.km - a.km);
+          return a.m + (b.m - a.m) * t;
+        }
+      }
+      return pts.at(-1).m;
+    };
+    const nearest = km => pts.reduce((best, p) =>
+      Math.abs(p.km - km) < Math.abs(best.km - km) ? p : best, pts[0]);
+
+    /* Mini profile in the bar. */
+    const W = 900, H = 38, pad = 3;
+    const X = km => (km / kmMax) * W;
+    const elMin = 1400, elMax = 6000;
+    const Y = m => pad + (1 - (m - elMin) / (elMax - elMin)) * (H - pad * 2);
+    const line = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.km).toFixed(1)},${Y(p.m).toFixed(1)}`).join(' ');
+    $('#hudChart').innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        <path class="hud-fill" d="${line} L${W},${H} L0,${H} Z"/>
+        <path class="hud-line" d="${line}" vector-effect="non-scaling-stroke"/>
+        <g id="hudMark"><circle class="hud-mark" cx="0" cy="0" r="4"/></g>
+      </svg>`;
+    const mark = $('#hudMark');
+
+    const elevOut = $('#hudElev'), whereOut = $('#hudWhere');
+    const zoneOut = $('#hudZone'), swatch = $('#hudSwatch');
+    let lastKm = -1;
+
+    const update = () => {
+      const mid = scrollY + innerHeight / 2;
+      const collar = $('#collar');
+      hud.classList.toggle('on', scrollY > innerHeight * 0.75);
+
+      /* Which day are we inside? Openers carry the day ids. */
+      let km = 0, span = spans[0];
+      for (const sp of spans) {
+        const opener = $('#day' + sp.day.n);
+        if (!opener) continue;
+        const top = opener.offsetTop;
+        const next = $('#day' + (sp.day.n + 1));
+        const bottom = next ? next.offsetTop : document.body.scrollHeight;
+        if (mid >= top && mid < bottom) {
+          const t = Math.min(1, Math.max(0, (mid - top) / (bottom - top)));
+          km = sp.from + (sp.to - sp.from) * t;
+          span = sp;
+          break;
+        }
+        if (mid >= bottom) { km = sp.to; span = sp; }
+      }
+      if (collar && mid < collar.offsetTop) { km = 0; span = spans[0]; }
+
+      if (Math.abs(km - lastKm) < 0.05) return;
+      lastKm = km;
+
+      const m = elAt(km), near = nearest(km);
+      elevOut.textContent = elev(m);
+      whereOut.textContent = `${near.name} · day ${span.day.n}`;
+      zoneOut.textContent = span.zone;
+      swatch.style.background = zoneColour(span.zone);
+      mark.setAttribute('transform',
+        `translate(${X(km).toFixed(1)},${Y(m).toFixed(1)})`);
+    };
+
+    addEventListener('scroll', () => requestAnimationFrame(update), { passive: true });
+    addEventListener('resize', update);
+    update();
+  }
+
   /* ── ledger ─────────────────────────────────────────────────── */
   function renderLedger() {
     const { gain, loss } = totals(), f = TRIP.facts;
@@ -475,12 +639,14 @@
   });
 
   /* ── boot ───────────────────────────────────────────────────── */
+  renderCover();
   renderRail();
   renderDays();
   renderProfile();
   renderOxygen();
   renderLedger();
   renderGalleries();
+  renderHud();
 
   $('#unitToggle').addEventListener('click', e => {
     const b = e.target.closest('button');
