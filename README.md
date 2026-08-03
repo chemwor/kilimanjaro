@@ -1,4 +1,4 @@
-# Kilimanjaro: Lemosho in Seven Days
+# Eric Chemwor - Kilimanjaro 2026
 
 A day-by-day site for the 24–30 June 2026 Lemosho climb.
 

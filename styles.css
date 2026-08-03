@@ -544,3 +544,15 @@ footer{padding-bottom:96px}
 .sheet-head .head-meta b{color:var(--ink); font-weight:400}
 .sheet-head .head-meta .arrow{color:var(--accent); padding:0 3px}
 .day .entry-main .prose{margin-top:2px}
+
+/* ── cover byline ───────────────────────────────────────────── */
+.cover-name{
+  display:block; font-family:var(--mono);
+  font-size:clamp(11px,1.5vw,15px); letter-spacing:.34em; text-transform:uppercase;
+  color:var(--paper); opacity:.92; margin-bottom:clamp(10px,1.8vw,22px);
+  text-shadow:0 1px 16px rgba(0,0,0,.7);
+}
+.cover-year{
+  font-family:var(--mono); font-size:.2em; letter-spacing:.16em;
+  vertical-align:baseline; opacity:.85; margin-left:.08em;
+}
