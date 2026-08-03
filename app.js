@@ -230,6 +230,10 @@
     }));
     if (!pts.length) return;
 
+    /* Barafu is passed twice, going up and coming back. Label it once. */
+    const seen = new Set();
+    pts.forEach(p => { p.labelled = !seen.has(p.name); seen.add(p.name); });
+
     const W = 1160, H = 440;
     const M = { t: 60, r: 40, b: 58, l: 64 };
     const iw = W - M.l - M.r, ih = H - M.t - M.b;
@@ -247,13 +251,19 @@
                <text class="ax-label" x="${M.l - 12}" y="${Y(m) + 4}" text-anchor="end" data-gridm="${m}"></text>`;
     }
 
+    /* The push is the climb only: from the camp you left (Barafu, which belongs
+       to the previous day's points) up to Uhuru. Not the descent afterwards. */
     const summitDay = TRIP.days.find(d => d.summit);
     let band = '';
     if (summitDay) {
-      const kms = summitDay.points.map(p => p.km);
-      const x0 = X(Math.min(...kms)), x1 = X(Math.max(...kms));
-      band = `<rect class="band-summit" x="${x0}" y="${M.t}" width="${x1 - x0}" height="${ih}"/>
-              <text class="band-label" x="${(x0 + x1) / 2}" y="${M.t - 32}" text-anchor="middle">summit push</text>`;
+      const si = summitDay.points.findIndex(p => p.summit);
+      if (si >= 0) {
+        const before = TRIP.days.slice(0, TRIP.days.indexOf(summitDay)).flatMap(d => d.points);
+        const startKm = before.length ? Math.max(...before.map(p => p.km)) : summitDay.points[0].km;
+        const x0 = X(startKm), x1 = X(summitDay.points[si].km);
+        band = `<rect class="band-summit" x="${x0}" y="${M.t}" width="${x1 - x0}" height="${ih}"/>
+                <text class="band-label" x="${(x0 + x1) / 2}" y="${M.t - 32}" text-anchor="middle">summit push</text>`;
+      }
     }
 
     // Climate-zone strip along the axis, keyed to the collar legend.
@@ -270,47 +280,66 @@
                 y="${M.t + ih + 32}" text-anchor="middle">DAY ${d.n}</text>`;
     });
 
-    // Label placement: above on peaks, below in troughs, then push apart.
+    /* Label placement. The stations that matter claim their spot first, so the
+       summit label always sits directly on the summit dot and neighbours move
+       around it rather than the other way round. */
     const LBL_H = 25, halfW = n => Math.max(32, n.length * 3.1);
-    const floorY = M.t + ih - 4, placed = [];
-    const labels = pts.map((p, i) => {
-      const before = pts[i - 1] ? pts[i - 1].m : p.m, after = pts[i + 1] ? pts[i + 1].m : p.m;
-      const x = X(p.km), y = Y(p.m);
+    const floorY = M.t + ih - 4, ceilY = M.t - 26;
+    const placed = [], labels = new Array(pts.length);
 
-      /* Try the natural side (above on peaks, below in troughs). If pushing it
-         clear of its neighbours would run it off the plot, use the other side. */
-      const resolve = up => {
+    const rank = p => p.summit ? 0 : (p.peak || p.camp) ? 1 : 2;
+    const order = pts.map((_, i) => i).sort((a, b) => rank(pts[a]) - rank(pts[b]) || a - b);
+
+    for (const i of order) {
+      const p = pts[i], x = X(p.km), y = Y(p.m), hw = halfW(p.name);
+      if (!p.labelled) { labels[i] = { x, y, tx: x, ly: 0, anchor: 'middle' }; continue; }
+      const before = pts[i - 1] ? pts[i - 1].m : p.m;
+      const after = pts[i + 1] ? pts[i + 1].m : p.m;
+
+      const hits = (tx, ly) => placed.some(q =>
+        Math.abs(q.tx - tx) < hw + q.hw && Math.abs(q.ly - ly) < LBL_H);
+      const inBounds = ly => ly > ceilY && ly + 12 < floorY;
+
+      const stack = up => {
         let ly = up ? y - 18 : y + 26;
-        for (let g = 0; g < 8; g++) {
-          if (!placed.some(q => Math.abs(q.x - x) < halfW(p.name) + q.hw && Math.abs(q.ly - ly) < LBL_H)) break;
+        for (let g = 0; g < 6; g++) {
+          if (!hits(x, ly)) return inBounds(ly) ? ly : null;
           ly += up ? -LBL_H : LBL_H;
         }
-        return ly;
+        return null;
       };
-      const fits = (ly, up) => up ? ly - 12 > M.t - 26 : ly + 12 < floorY;
 
-      let above = p.m >= (before + after) / 2;
-      let ly = resolve(above);
-      if (!fits(ly, above)) {
-        const alt = resolve(!above);
-        if (fits(alt, !above)) { above = !above; ly = alt; }
+      const natural = p.m >= (before + after) / 2;
+      let ly = stack(natural);
+      if (ly === null) ly = stack(!natural);
+
+      if (ly === null) {
+        /* Nowhere to stack: sit beside the dot rather than drift off it. */
+        const toLeft = x > M.l + iw / 2;
+        const tx = x + (toLeft ? -13 : 13);
+        labels[i] = { x, y, tx, ly: y - 1, anchor: toLeft ? 'end' : 'start' };
+        placed.push({ tx, ly: y - 1, hw });
+        continue;
       }
-      placed.push({ x, ly, hw: halfW(p.name) });
-      return { x, y, ly, anchor: x > W - 120 ? 'end' : x < M.l + 46 ? 'start' : 'middle' };
-    });
+
+      const anchor = x > W - 120 ? 'end' : x < M.l + 46 ? 'start' : 'middle';
+      labels[i] = { x, y, tx: x, ly, anchor };
+      placed.push({ tx: x, ly, hw });
+    }
 
     const colour = p => p.summit ? '#8c3a2b' : p.peak ? '#a68a6d'
                       : p.camp ? '#3d5f73' : p.skipped ? '#efe9dc' : '#9b937f';
     const dots = pts.map((p, i) => {
-      const { x, y, ly, anchor } = labels[i];
+      const { x, y, tx, ly, anchor } = labels[i];
       const c = colour(p), r = p.summit ? 6 : (p.camp || p.peak) ? 5 : 3.4;
       return `<g class="pt" data-i="${i}">
         <circle cx="${x}" cy="${y}" r="${r}" fill="${c}"
           stroke="${p.skipped ? '#9b937f' : c}" stroke-width="${p.skipped ? 1.4 : 0}"
           ${p.skipped ? 'stroke-dasharray="2.5 2"' : ''}/>
         ${p.summit ? `<circle cx="${x}" cy="${y}" r="10" fill="none" stroke="#8c3a2b" stroke-width="1"/>` : ''}
-        <text class="pt-label" x="${x}" y="${ly}" text-anchor="${anchor}">${p.name}</text>
-        <text class="pt-elev" x="${x}" y="${ly + 12}" text-anchor="${anchor}" data-m="${p.m}"></text>
+        ${p.labelled ? `
+        <text class="pt-label" x="${tx}" y="${ly}" text-anchor="${anchor}">${p.name}</text>
+        <text class="pt-elev" x="${tx}" y="${ly + 12}" text-anchor="${anchor}" data-m="${p.m}"></text>` : ''}
       </g>`;
     }).join('');
 
