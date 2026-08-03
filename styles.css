@@ -181,11 +181,7 @@ h1,h2,h3{font-weight:600; line-height:1.02; letter-spacing:-.018em; margin:0}
   font-family:var(--mono); font-size:9.5px; letter-spacing:.12em;
   text-transform:uppercase; color:var(--ink-soft)}
 .legend span{display:inline-flex; align-items:center; gap:7px}
-.legend i{font-style:normal; font-size:12px; line-height:1}
-.k-camp{color:var(--blue)}
-.k-high{color:var(--z-scree)}
-.k-skip{color:var(--ink-faint)}
-.k-summit{color:var(--red)}
+.legend .key-dot{width:22px; height:22px; display:block; overflow:visible; flex:0 0 22px}
 
 /* ── day entry ──────────────────────────────────────────────── */
 .entry-body{display:grid; grid-template-columns:1fr 292px; gap:0}

@@ -220,6 +220,26 @@
     });
   }
 
+  /* How a station is drawn. The legend below the chart calls this too, so the
+     key can never drift from the plot. */
+  const STATION = {
+    summit:  { r: 6,   fill: '#8c3a2b', ring: true },
+    peak:    { r: 5,   fill: '#a68a6d' },
+    camp:    { r: 5,   fill: '#3d5f73' },
+    skipped: { r: 5,   fill: '#efe9dc', stroke: '#9b937f' },
+    plain:   { r: 3.4, fill: '#9b937f' },
+  };
+  const stationKind = p => p.summit ? 'summit' : p.peak ? 'peak'
+                         : p.camp ? 'camp' : p.skipped ? 'skipped' : 'plain';
+  const stationDot = (p, x, y) => {
+    const s = STATION[stationKind(p)];
+    return `<circle cx="${x}" cy="${y}" r="${s.r}" fill="${s.fill}"
+              stroke="${s.stroke || s.fill}" stroke-width="${s.stroke ? 1.4 : 0}"
+              ${s.stroke ? 'stroke-dasharray="2.5 2"' : ''}/>` +
+      (s.ring ? `<circle cx="${x}" cy="${y}" r="10" fill="none"
+                   stroke="${s.fill}" stroke-width="1"/>` : '');
+  };
+
   /* ── elevation profile ──────────────────────────────────────── */
   function renderProfile() {
     const pts = [];
@@ -327,16 +347,10 @@
       placed.push({ tx: x, ly, hw });
     }
 
-    const colour = p => p.summit ? '#8c3a2b' : p.peak ? '#a68a6d'
-                      : p.camp ? '#3d5f73' : p.skipped ? '#efe9dc' : '#9b937f';
     const dots = pts.map((p, i) => {
       const { x, y, tx, ly, anchor } = labels[i];
-      const c = colour(p), r = p.summit ? 6 : (p.camp || p.peak) ? 5 : 3.4;
       return `<g class="pt" data-i="${i}">
-        <circle cx="${x}" cy="${y}" r="${r}" fill="${c}"
-          stroke="${p.skipped ? '#9b937f' : c}" stroke-width="${p.skipped ? 1.4 : 0}"
-          ${p.skipped ? 'stroke-dasharray="2.5 2"' : ''}/>
-        ${p.summit ? `<circle cx="${x}" cy="${y}" r="10" fill="none" stroke="#8c3a2b" stroke-width="1"/>` : ''}
+        ${stationDot(p, x, y)}
         ${p.labelled ? `
         <text class="pt-label" x="${tx}" y="${ly}" text-anchor="${anchor}">${p.name}</text>
         <text class="pt-elev" x="${tx}" y="${ly + 12}" text-anchor="${anchor}" data-m="${p.m}"></text>` : ''}
@@ -361,6 +375,17 @@
 
     $$('#profile-chart .pt-elev').forEach(n => reg(n, +n.dataset.m, v => comma(toUnit(v))));
     $$('#profile-chart [data-gridm]').forEach(n => reg(n, +n.dataset.gridm, v => comma(toUnit(v))));
+
+    const legend = $('#profileLegend');
+    if (legend) {
+      const keys = [
+        ['camp', { camp: true }], ['high point', { peak: true }],
+        ['camp we skipped', { skipped: true }], ['summit', { summit: true }],
+      ];
+      legend.innerHTML = keys.map(([label, p]) => `<span>
+        <svg class="key-dot" viewBox="0 0 24 24" aria-hidden="true">${stationDot(p, 12, 12)}</svg>
+        ${label}</span>`).join('');
+    }
 
     attachTip($('#profile .chart-holder'), '#profile-chart .pt', i => {
       const p = pts[i];
