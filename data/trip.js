@@ -1,16 +1,16 @@
 /*  Kilimanjaro — Lemosho Route, 7 days, 24–30 June 2026
  *
  *  This is the single place to edit the trip. Everything on the site is
- *  rendered from here: the day sections, the elevation profile, the route
- *  points, the stat counters.
+ *  rendered from here: the day sections, the elevation profile, the blood
+ *  oxygen chart, the route points, the stat tiles, the closing ledger.
  *
  *  Elevations are in metres; the site converts to feet on the fly.
  *  `km` on a point is cumulative distance walked since the trailhead — it is
  *  what positions the point on the elevation profile.
  *
- *  The dates and the on-the-move times are not guesses: they were read out of
- *  the EXIF capture times on the trip photos and the drone clips, which agree
- *  with each other to the minute.
+ *  Dates and the on-the-move times come from the EXIF capture times on the
+ *  trip photos and drone clips, which agree with each other to the minute.
+ *  The narrative, the SpO2 readings and the times are Eric's own account.
  */
 
 const TRIP = {
@@ -18,7 +18,6 @@ const TRIP = {
   subtitle: "Lemosho Route · seven days · June 2026",
   summitDate: "2026-06-29",
 
-  // Headline numbers, shown in the hero and the closing ledger.
   facts: {
     summitElevation: 5895,
     startElevation: 2360,
@@ -26,7 +25,9 @@ const TRIP = {
     days: 7,
     nightsOnMountain: 6,
     highestSleep: 4673,
-    summitTime: "14:15",
+    summitTime: "14:10",
+    startSpo2: 89,
+    summitSpo2: 32,
   },
 
   days: [
@@ -42,10 +43,18 @@ const TRIP = {
       zone: "Montane rainforest",
       firstFrame: "08:18",
       lastFrame: "15:11",
-      blurb:
-        "You sign the register at Londorossi, ride a truck up a red-dirt road, and start walking where the forest closes over the track. It is humid and loud — colobus monkeys overhead, water somewhere off the trail, moss on everything. Nothing about this first afternoon feels like a mountain yet.",
+      spo2: 89,
+      blurb: [
+        "You sign the register at Londorossi, ride a truck up a red-dirt road, and start walking where the forest closes over the track. Humid and loud — colobus monkeys somewhere overhead, water running off the trail, moss on everything. As a hike it is gentle. Almost nothing about the first day is technically hard.",
+        "What is hard is that you started this trip with a stomach bug. It decides what you can eat and it decides, with no notice, when you need to leave the trail. Somewhere in the bushes on day one you find out the hard way that Kilimanjaro's rainforest has stinging nettles, and that they are waist-height, and that you were not looking. It hurts. It stops hurting after about five minutes. It is the funniest thing that will happen to you all week.",
+        "The real enemy today is mud. It is slick and constant and it will still be there on the last day, waiting.",
+      ],
+      moments: [
+        { title: "The nettle", text: "Stomach bug, no bathroom, tall bushes, a stinging nettle plant. Five minutes of genuine pain and a story for life." },
+        { title: "Mud", text: "The hardest part of an otherwise easy day. Slippery the whole way up — and it will be worse on the way down." },
+      ],
       points: [
-        { name: "Londorossi Gate", m: 2100, km: 0, note: "Registration and permits. 2,100 m, and already higher than most of the country." },
+        { name: "Londorossi Gate", m: 2100, km: 0, note: "Registration and permits. 2,100 m, already higher than most of the country." },
         { name: "Lemosho Trailhead", m: 2360, km: 0, note: "Boots on. The forest starts here." },
         { name: "Mti Mkubwa", m: 2785, km: 6, note: "\"Big Tree\" — first camp, first night under the canopy.", camp: true },
       ],
@@ -62,8 +71,18 @@ const TRIP = {
       zone: "Heather & moorland",
       firstFrame: "08:35",
       lastFrame: "17:40",
-      blurb:
-        "The canopy thins, then quits altogether. You climb the Shira Ridge through giant heather, white-necked ravens tracking you along the trail, and come out on the plateau — and there it is, the whole point of the walk, sitting on the horizon with a glacier on its shoulder. First time you can see what you signed up for.",
+      spo2: 82,
+      highlight: "the day you nearly talked yourself out of it",
+      blurb: [
+        "You wake at three in the morning to monkeys fighting somewhere in the dark, and then you keep waking — in and out, never properly under. At one point you surface with your heart going far too fast, and that frightens you. Stack that on top of a stomach that still isn't right and a head cold that arrived overnight, stuffed and congested, and this is the morning you quietly start second-guessing the whole trip.",
+        "And then the day gets better. It usually does. You eat more than you managed yesterday. The canopy thins and quits, and you climb the Shira Ridge through giant heather with white-necked ravens tracking you along the trail, close enough to watch properly. The ridges are genuinely beautiful. The hiking is intense — it is essentially all incline — but you are moving well.",
+        "At camp you lie down for a nap and sleep straight through tea, surfacing only for dinner. It is the best decision you make all week. You wake up the next morning better than you have felt since the gate. This is also the day the altitude introduces itself: a headache, not yet an appetite problem.",
+      ],
+      moments: [
+        { title: "3 a.m., monkeys fighting", text: "Screaming in the dark outside the tent. Sleep came in fragments after that." },
+        { title: "Racing heart", text: "Waking up with your pulse far too fast at 3,500 m is its own kind of frightening." },
+        { title: "The nap that saved it", text: "Slept clean through tea time. Woke for dinner, then woke the next day genuinely improved." },
+      ],
       points: [
         { name: "Shira Ridge", m: 3600, km: 11, note: "The tree line ends. The view opens and does not close again for five days." },
         { name: "Shira 1 Camp", m: 3505, km: 14, note: "On the floor of an old collapsed cone. The signboard lists every camp still ahead of you.", camp: true },
@@ -81,30 +100,48 @@ const TRIP = {
       zone: "Moorland → alpine desert",
       firstFrame: "06:34",
       lastFrame: "18:37",
-      blurb:
-        "A 6:34 start, and a long slow walk east across the Shira plateau with Kibo growing in front of you all morning. This is giant lobelia and groundsel country — plants that exist nowhere else on earth, standing around like they are waiting for something. You are at 3,900 m by early afternoon, and the sunset that evening happens below you, on top of the clouds.",
+      spo2: 75,
+      blurb: [
+        "A 6:34 start and a long, slow walk east across the Shira plateau with Kibo growing in front of you all morning. As a hike it is simple — flat, open, forgiving — and after yesterday it lands like a rest day. The cold symptoms are still there but you feel better than you did. This is giant lobelia and groundsel country, plants that grow nowhere else on earth, standing around like they are waiting for something.",
+        "The altitude is not resting, though. The headache is with you all day and it sharpens toward evening. By the end of it, moving quickly costs you: sit down on the ground, stand back up, and you get the head rush of standing too fast — except you didn't stand too fast. No nap today.",
+        "That evening the sun sets below you, on top of the clouds.",
+      ],
+      moments: [
+        { title: "Head rush", text: "Sitting down and getting back up was enough to grey out the edges. First real sign the altitude was winning." },
+        { title: "Sunset from above", text: "3,900 m, and the weather is happening underneath you." },
+      ],
       points: [
-        { name: "Shira 2 Camp", m: 3900, km: 21, note: "Alpine desert begins. Thin, dry, cold at night, and the last easy day.", camp: true },
+        { name: "Shira 2 Camp", m: 3900, km: 21, note: "Alpine desert begins. Thin, dry, cold at night — and the last easy day.", camp: true },
       ],
     },
     {
       n: 4,
       date: "2026-06-27",
-      label: "Lava Tower, then down to Barranco",
+      label: "Pole pole",
       from: "Shira 2 Camp",
       to: "Barranco Camp",
       sleepAt: 3960,
       distanceKm: 10,
       hours: "7–8",
       zone: "Alpine desert",
-      highlight: "climb high, sleep low",
+      highlight: "pole pole — slowly, slowly",
       firstFrame: "08:26",
       lastFrame: "16:41",
-      blurb:
-        "The ground turns to rock and dust — no soil, no shelter, nothing growing above ankle height. You climb to 4,630 m at Lava Tower, a 300-metre plug of solidified magma, and feel exactly how thin the air is up there. Then you give all that altitude straight back, dropping 670 m into Barranco through a forest of giant senecios. Climb high, sleep low. Your head thanks you for it at two in the morning.",
+      spo2: 65,
+      blurb: [
+        "This is the day the mental strain arrives. You wake up and the thought lands fully formed: I have to hike today, and it is going to take all day, and then I have to do it again. You hit sections where you look up and think there is no way I get over that, and the self-doubt gets a real foothold for the first time.",
+        "So you go step by step. The word here is <i>pole pole</i> — slowly, slowly — and today it stops being a phrase the guides say and becomes the only way anything happens. The headache is harder now. The thin air is exhausting in a way that is difficult to explain to anyone who hasn't been in it: putting your shoes on makes you tired. Any incline at all is a fight. Going downhill is the only time you get your breath back, which is why dropping into Barranco feels like mercy.",
+        "Eating is becoming a problem — not lost appetite exactly, more that food has become difficult. Soup goes down. Porridge goes down. You take as much of both as you can hold, because it is energy and you are going to need it. You keep forgetting to bring your water to meals, which makes all of it harder.",
+        "Somewhere along here you pass rocks the buffalo come to lick salt from. And somewhere along here you lose one of your first-layer gloves — which you notice, and then worry about, because summit night is in two days.",
+      ],
+      moments: [
+        { title: "Tired putting your shoes on", text: "At 4,000 m, bending over to lace boots is genuinely aerobic work." },
+        { title: "The salt licks", text: "Rocks the buffalo climb to for salt, well above where you'd expect to find them." },
+        { title: "The lost glove", text: "One first-layer glove, gone. Two days from the summit, that is not a small problem." },
+      ],
       points: [
-        { name: "Lava Tower", m: 4630, km: 27, note: "Lunch at 15,190 ft. The acclimatisation high point — you come here to suffer briefly on purpose.", peak: true },
-        { name: "Barranco Camp", m: 3960, km: 31, note: "Under the Breach Wall, among the giant groundsels, with the summit glaciers hanging directly overhead.", camp: true },
+        { name: "Lava Tower", m: 4630, km: 27, note: "Lunch at 15,190 ft. The acclimatisation high point — you come up here to suffer briefly, on purpose.", peak: true },
+        { name: "Barranco Camp", m: 3960, km: 31, note: "Under the Breach Wall, among the giant groundsels, the summit glaciers hanging directly overhead.", camp: true },
       ],
     },
     {
@@ -121,12 +158,26 @@ const TRIP = {
       highlight: "the day we skipped a camp",
       firstFrame: "07:57",
       lastFrame: "19:58",
-      blurb:
-        "This is the day the eight-day itinerary gets folded into seven. You are on the Barranco Wall by eight in the morning — hands on rock, packs handed up, the Kissing Rock move where the trail hugs the face and you do not look right. Most groups come down the far side, walk to Karanga, and stop there for the night. We ate at Karanga and kept walking. By evening you are at Barafu, 4,673 m, pitched on loose scree with the summit ridge directly above you, and the plan is to go up it.",
+      spo2: 58,
+      blurb: [
+        "You start the day down a glove, with a sock on one hand.",
+        "You saw the Barranco Wall yesterday, from below, and the verdict was immediate: there is no way I am getting up that. It is steep enough that it doesn't read as a trail at all. Then it is morning and you are on it, and it turns out you were right about one thing — you physically climb rock. Hands on holds. And when you turn around, the drop behind you is exactly as far down as it looked.",
+        "Two things happen on the Wall. A porter loses the bag he is carrying and it goes over the edge into the valley, and the whole slow arc of it seems to take minutes, and there is nothing anyone can do but watch it go. And you pass a man who has frozen solid with fear — not injured, not sick, just stopped, unable to make himself move.",
+        "Then the Kissing Rock, where the trail hugs the face so close you have to press against it, holding on with everything, with several storeys of nothing underneath. The climbing part is honestly fun. The altitude sickness sitting on top of it makes it hard to enjoy properly.",
+        "You top out and everyone breathes. And the day is not over. Most groups walk to Karanga from here and stop for the night — that is the eight-day itinerary. We ate at Karanga and kept going, because we were doing this in seven.",
+        "It is colder today. More layers. You get to Barafu in the evening: 4,673 m, all loose rock, the summit visible directly above you. You are above the clouds, and at night you can see the city lights far below through the gaps. The briefing that evening is about tomorrow — 3 a.m. wake-up, slightly later than usual, and exactly what you'll carry. You sleep in most of the base layer you intend to summit in.",
+      ],
+      moments: [
+        { title: "A sock for a glove", text: "Down one first layer, improvising, the day before summit night." },
+        { title: "The dropped bag", text: "A porter's load went over the edge and fell into the valley in what felt like slow motion. Nothing to do but watch." },
+        { title: "The frozen climber", text: "A man stopped dead on the Wall, too frightened to move in either direction." },
+        { title: "Kissing Rock", text: "Press yourself to the face, hold on, and do not let go. A long way down if you do." },
+        { title: "City lights from 4,673 m", text: "Above the cloud layer at Barafu, with the lights of the town showing through the gaps." },
+      ],
       points: [
-        { name: "Barranco Wall", m: 4200, km: 32.5, note: "257 m of scramble, and the only place on the whole route where you use your hands." },
+        { name: "Barranco Wall", m: 4200, km: 32.5, note: "257 m of scramble, and the only place on the route where you climb with your hands." },
         { name: "Karanga Camp", m: 3995, km: 36, note: "Where the eight-day trek sleeps. We ate lunch and walked on.", skipped: true },
-        { name: "Barafu Camp", m: 4673, km: 40, note: "\"Ice\" in Swahili, and it earns the name. Highest camp of the trip.", camp: true },
+        { name: "Barafu Camp", m: 4673, km: 40, note: "\"Ice\" in Swahili, and it earns it. Highest camp, shortest night.", camp: true },
       ],
     },
     {
@@ -137,35 +188,63 @@ const TRIP = {
       to: "Uhuru Peak → Millennium Camp",
       sleepAt: 3820,
       distanceKm: 14,
-      hours: "12–13",
+      hours: "19 h",
       zone: "Arctic summit",
       summit: true,
-      highlight: "5,895 m",
+      highlight: "the hardest thing I have ever done",
       firstFrame: "12:22",
       lastFrame: "20:40",
-      blurb:
-        "Summit day, and nobody takes a photograph for hours. You switchback up frozen scree in air holding about half the oxygen you were born into, and there is nothing to say and no breath to say it with. The first frame anyone shoots all day is at 12:22, at Stella Point on the crater rim — glaciers, cloud below, the hard part behind you. Then an hour along the rim, and at 14:15 the ground stops going up. Uhuru Peak, 5,895 m: the highest point in Africa and the tallest freestanding mountain on earth, and you walked here from a rainforest five days ago. Then you turn around and give back nearly 2,100 m of it before you sleep.",
+      spo2: 55,
+      spo2Low: 32,
+      blurb: [
+        "3 a.m. Gear was laid out the night before. You eat breakfast, collect your bag, and go. Today food and water are not comfort, they are equipment — you will be moving continuously with no real lunch, because the air up here is too thin to let you linger.",
+        "The guide tells you the first incline is the hardest part of the day. You take that and make a deal with yourself: get through this bit and you will make the top.",
+        "The altitude sickness is worse than it has ever been. You take ibuprofen for the headache. Every step is a negotiation. It feels like five minutes to move five feet — tiny steps, and breathing that keeps getting harder. Move fast and you pay for it instantly, so you pace your breath to your feet, one to one, and you hold that rhythm because the moment you break it you are wrecked. It feels like it takes forever, because it does, and because it is nothing but uphill.",
+        "You reach the crater rim. Stella Point, 12:22, and it is the first photograph anyone has taken all day — nine hours in. You stop to eat and you are hollowed out; it takes everything you have to start moving again. An apple. Something light. Anything sweet makes you feel wrong.",
+        "One more hour along the rim to the highest point in Africa. Up there everything is alien — the closest to another planet you are likely to stand. The snow is as hard as rock. Time moves differently. And if the climb up was slow, this is something else: ten to fifteen minutes to cover five feet. Every single step feels like you have just finished running for your life. Left, right. Left, right.",
+        "<b>14:10. Uhuru Peak, 5,895 m.</b> They say people cry up here, after what it takes to arrive. You didn't — but you understood exactly why they do. It was the hardest thing you have ever done, it took everything you had, and you did it. The euphoria hits like a wave.",
+        "And then it goes wrong. Too excited, moving too fast, trying to get down — and at that altitude you do not get away with that. You pass out. What you remember next is your blood oxygen reading in the <b>30s</b> and an oxygen tank strapped to you, breathing in as hard as you can manage.",
+        "After that it is a rush to lose altitude. The guide takes your weight and you go down fast, sliding on ground that will not hold, trying to find your footing while badly confused. Porters come up to help carry you back to camp. You arrive at Barafu and think it is a different camp, a new one — you go into the dining tent, come out, and have no idea what has happened or where you are. The clearest way to describe it is a concussion: the fog, the missing pieces, the motor control coming and going.",
+        "Your oxygen is at 55 and that is not good enough to sleep at 4,673 m. So the day is still not over. You night-hike down to a lower camp with porters supporting you, in and out of confusion the whole way. You get there feeling better than you did at Barafu — not good, still at 55, but better, and hoping sleep will do the rest.",
+        "You reach your tent at 10 p.m. Nineteen hours after you started.",
+      ],
+      moments: [
+        { title: "03:00 start", text: "Slightly later than the usual midnight push. Gear prepped the night before." },
+        { title: "Nine hours to the first photo", text: "Nobody had a hand or a breath to spare until Stella Point at 12:22." },
+        { title: "14:10 — Uhuru Peak", text: "5,895 m. Highest point in Africa, tallest freestanding mountain on earth." },
+        { title: "SpO₂ in the 30s", text: "Passed out shortly after the summit. Oxygen tank, then an emergency descent.", critical: true },
+        { title: "The night hike", text: "55% and falling asleep on your feet — but too high to stay. Down to a lower camp in the dark, arriving 22:00." },
+      ],
       points: [
-        { name: "Stella Point", m: 5756, km: 45, note: "12:22. The crater rim. The climbing is over; the cold is not." },
-        { name: "Uhuru Peak", m: 5895, km: 46, note: "14:15. 19,341 ft. Roof of Africa.", summit: true },
-        { name: "Barafu Camp", m: 4673, km: 51, note: "Back down for a rest and a repack before carrying on." },
-        { name: "Millennium Camp", m: 3820, km: 55, note: "Below the scree, back among plants, and warm enough to sleep properly.", camp: true },
+        { name: "Stella Point", m: 5756, km: 45, note: "12:22. The crater rim. The climbing is over; the cold and the thin air are not." },
+        { name: "Uhuru Peak", m: 5895, km: 46, note: "14:10. 19,341 ft. The goal, complete — and then the emergency.", summit: true },
+        { name: "Barafu Camp", m: 4673, km: 51, note: "Carried in confused, on oxygen. Too high to stay the night." },
+        { name: "Millennium Camp", m: 3820, km: 55, note: "Reached at 22:00 by night hike. Lower, warmer, survivable.", camp: true },
       ],
     },
     {
       n: 7,
       date: "2026-06-30",
-      label: "Down through the green",
+      label: "Down through the mud",
       from: "Millennium Camp",
       to: "Mweka Gate",
       sleepAt: null,
       distanceKm: 10,
-      hours: "4–5",
+      hours: "5–6",
       zone: "Rainforest again",
       firstFrame: "10:53",
       lastFrame: "19:06",
-      blurb:
-        "The mountain runs backwards. Moorland, then heather, then mud and moss and birdsong and fog in the trees, and air so thick it feels like a drink after five days without it. Knees complain the whole way down and nobody cares. You sign out at Mweka Gate, and that evening someone hands you a certificate with your name on it and the number 5,895 printed underneath.",
+      blurb: [
+        "You wake up better. The confusion has mostly lifted — what is left is a mental fog, gaps where facts should be, and it keeps clearing as the day goes on.",
+        "The tipping ceremony happens this morning: the guides and porters who got you up and, in your case, got you down. Then you pack and start walking.",
+        "The first stretch is rocky and downhill, and the gravel slides under you, so most of the effort is spent braking rather than moving. Manageable. Then you hit the forest, and the forest has its own rules. The flat parts are fine. Every descent is mud — deep, slick, unavoidable mud that gets on your trousers and then on everything else.",
+        "You know the end is close but you have no idea how close, and it goes on and on, hours of nothing but downhill through a churned brown path. And then it stops, and there is a gate, and you sign out of the park.",
+        "That evening, someone hands you a certificate with your name on it and 5,895 m printed underneath.",
+      ],
+      moments: [
+        { title: "Tipping ceremony", text: "The morning ritual for the crew — the people who carried the camp, the food, and on day six, you." },
+        { title: "Mud, again", text: "Same enemy as day one, in the same forest, going the other way. Everything got covered." },
+      ],
       points: [
         { name: "Mweka Gate", m: 1640, km: 65, note: "Sign out. 65 km on foot, and 4,255 m of vertical between here and where you stood yesterday afternoon." },
       ],

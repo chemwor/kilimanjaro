@@ -14,6 +14,7 @@
   --sun-hot:#ef7d3d;
   --forest:#6f9e6b;       /* rainforest    — low camps */
   --scree:#a2917d;        /* alpine desert */
+  --crit:#d64545;         /* the emergency */
 
   --maxw:1120px;
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Source Serif Pro", Georgia, serif;
@@ -158,6 +159,21 @@ h1,h2,h3{font-family:var(--serif); font-weight:600; line-height:1.1; letter-spac
 .k-skip{background:transparent; border:1.5px dashed #7c8798}
 .k-summit{background:var(--sun); box-shadow:0 0 0 3px rgba(242,166,90,.25)}
 
+/* ── blood oxygen ────────────────────────────────────────────── */
+.oxygen-section{padding:100px 0 90px; border-top:1px solid var(--line);
+  background:linear-gradient(#0e141c, #0b0f14)}
+.oxygen-section h2{font-size:clamp(32px,4.6vw,50px)}
+#oxygen-chart{min-width:760px; padding:0 28px}
+#oxygen-chart svg{width:100%; height:auto; display:block; overflow:visible}
+.zone-label{fill:#5a6879; font:600 10px var(--sans); letter-spacing:.16em; text-transform:uppercase}
+.ox-val{fill:var(--ice); font:700 13px var(--sans); font-variant-numeric:tabular-nums}
+.ox-crit{fill:var(--crit); font:700 12px var(--sans); letter-spacing:.02em}
+.ox-pt{cursor:pointer}
+.ox-pt circle{transition:r .16s}
+.ox-pt:hover circle{r:9}
+.ox-pt.is-crit circle{animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{stroke-width:7}50%{stroke-width:13}}
+
 /* ── day sections ────────────────────────────────────────────── */
 .day{padding:96px 0; border-top:1px solid var(--line); position:relative}
 .day:nth-child(even){background:#0d131b}
@@ -189,10 +205,13 @@ h1,h2,h3{font-family:var(--serif); font-weight:600; line-height:1.1; letter-spac
 
 .day-body{display:grid; grid-template-columns:1.15fr .85fr; gap:52px; align-items:start}
 .blurb{font-size:18px; line-height:1.72; color:#cfdae6; margin:0}
-.blurb::first-letter{
+.blurb.cont{margin-top:20px}
+.blurb:not(.cont)::first-letter{
   float:left; font-family:var(--serif); font-size:62px; line-height:.82;
   padding:6px 12px 0 0; color:var(--sun);
 }
+.blurb b{color:#fff; font-weight:600}
+.blurb i{font-style:italic; color:var(--sun)}
 .tag{
   display:inline-block; margin-top:22px; font:600 11.5px var(--sans);
   letter-spacing:.14em; text-transform:uppercase; color:var(--sun);
@@ -200,12 +219,23 @@ h1,h2,h3{font-family:var(--serif); font-weight:600; line-height:1.1; letter-spac
 }
 
 /* stat strip */
+.day-side{position:sticky; top:24px}
 .day-stats{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:12px; overflow:hidden}
 .day-stats div{background:var(--panel); padding:16px 18px}
 .day-stats b{display:block; font-family:var(--serif); font-size:26px; font-variant-numeric:tabular-nums; line-height:1.1}
 .day-stats span{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-dim); margin-top:6px; display:block}
 .day-stats .up b{color:var(--sun)}
 .day-stats .down b{color:var(--ice)}
+.day-stats .o2 b{color:var(--crit)}
+
+/* what happened that day */
+.moments{list-style:none; margin:18px 0 0; padding:0; display:grid; gap:1px;
+  background:var(--line); border:1px solid var(--line); border-radius:12px; overflow:hidden}
+.moments li{background:var(--panel); padding:15px 18px}
+.moments li.is-critical{background:linear-gradient(90deg, rgba(214,69,69,.14), var(--panel) 70%)}
+.moments b{display:block; font-size:14px; font-weight:600; margin-bottom:4px}
+.moments li.is-critical b{color:var(--crit)}
+.moments span{display:block; font-size:13.5px; line-height:1.5; color:var(--text-dim)}
 
 /* route point list */
 .points{list-style:none; margin:26px 0 0; padding:0; position:relative}
@@ -290,8 +320,9 @@ footer a:hover{color:var(--sun)}
 /* ── responsive ──────────────────────────────────────────────── */
 @media (max-width:900px){
   .day-body{grid-template-columns:1fr; gap:34px}
+  .day-side{position:static}
   .day{padding:70px 0}
-  .profile-section{padding:80px 0 60px}
+  .profile-section, .oxygen-section{padding:80px 0 60px}
 }
 @media (max-width:560px){
   body{font-size:16px}

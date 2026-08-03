@@ -70,10 +70,23 @@
         ['up',   'ascent',   gain ? '+' + gain : '—', gain || null],
         ['down', 'descent',  loss ? '−' + loss : '—', loss || null],
         ['',     'distance', day.distanceKm ? day.distanceKm + ' km' : '—', null],
+        ['',     'on trail', /\d\s*h|→/.test(day.hours) ? day.hours : day.hours + ' h', null],
         day.sleepAt
           ? ['', 'slept at', null, day.sleepAt]
-          : ['', 'on trail', day.hours === '—' ? '—' : day.hours + ' h', null],
+          : ['', 'ended at', 'the gate', null],
+        day.spo2
+          ? ['o2', 'blood oxygen', day.spo2 + '%', null]
+          : ['', '', '', null],
       ];
+
+      // blurb is an array of paragraphs (a plain string still works).
+      const paras = (Array.isArray(day.blurb) ? day.blurb : [day.blurb])
+        .map((p, i) => `<p class="${i === 0 ? 'blurb' : 'blurb cont'}">${p}</p>`).join('');
+
+      const momentsHTML = (day.moments || []).map(m => `
+        <li class="${m.critical ? 'is-critical' : ''}">
+          <b>${m.title}</b><span>${m.text}</span>
+        </li>`).join('');
 
       sec.innerHTML = `
         <div class="wrap">
@@ -88,16 +101,17 @@
 
           <div class="day-body">
             <div>
-              <p class="blurb">${day.blurb}</p>
+              ${paras}
               ${day.highlight ? `<span class="tag">${day.highlight}</span>` : ''}
               ${day.points.length ? `<ul class="points">${pointsHTML}</ul>` : ''}
             </div>
-            <div>
+            <div class="day-side">
               <div class="day-stats">
-                ${stats.map(([k, lbl, txt, m]) => `
+                ${stats.map(([k, lbl, txt, m]) => lbl === '' ? '' : `
                   <div class="${k}"><b ${m != null ? `data-m="${m}"` : ''}>${txt ?? ''}</b>
                   <span>${lbl}</span></div>`).join('')}
               </div>
+              ${momentsHTML ? `<ul class="moments">${momentsHTML}</ul>` : ''}
             </div>
           </div>
           <div class="gallery" data-date="${day.date}"></div>
@@ -266,6 +280,83 @@
     });
   }
 
+  /* ── blood oxygen ───────────────────────────────────────────── */
+  function renderOxygen() {
+    const host = $('#oxygen-chart');
+    if (!host) return;
+    const read = TRIP.days.filter(d => d.spo2);
+    if (!read.length) return;
+
+    const W = 1000, H = 360;
+    // Wide right margin: the zone captions live outside the plot so they can
+    // never collide with the trace, and the last reading sits on the boundary.
+    const M = { t: 34, r: 104, b: 62, l: 56 };
+    const iw = W - M.l - M.r, ih = H - M.t - M.b;
+    const lo = 25, hi = 100;
+    const X = i => M.l + (read.length === 1 ? iw / 2 : (i / (read.length - 1)) * iw);
+    const Y = v => M.t + (1 - (v - lo) / (hi - lo)) * ih;
+
+    // Clinical reference bands, lightest to most severe.
+    const zones = [
+      [90, 100, 'rgba(111,158,107,.13)', 'normal'],
+      [80, 90,  'rgba(242,166,90,.10)',  'hypoxemia'],
+      [60, 80,  'rgba(239,125,61,.12)',  'severe'],
+      [lo, 60,  'rgba(214,69,69,.16)',   'critical'],
+    ];
+    const bands = zones.map(([a, b, fill, label]) => `
+      <rect x="${M.l}" y="${Y(b)}" width="${iw}" height="${Y(a) - Y(b)}" fill="${fill}"/>
+      <text class="zone-label" x="${M.l + iw + 12}" y="${(Y(a) + Y(b)) / 2 + 4}"
+            text-anchor="start">${label}</text>`).join('');
+
+    let grid = '';
+    for (let v = 30; v <= 100; v += 10) {
+      grid += `<line class="ax-line" x1="${M.l}" y1="${Y(v)}" x2="${W - M.r}" y2="${Y(v)}"/>
+               <text class="ax-label" x="${M.l - 11}" y="${Y(v) + 4}" text-anchor="end">${v}%</text>`;
+    }
+
+    const line = read.map((d, i) => `${i ? 'L' : 'M'}${X(i)},${Y(d.spo2)}`).join(' ');
+
+    let dots = '', drop = '';
+    read.forEach((d, i) => {
+      const x = X(i), y = Y(d.spo2);
+      dots += `<g class="ox-pt" data-day="${d.n}">
+          <circle cx="${x}" cy="${y}" r="6" fill="#0b0f14" stroke="var(--ice)" stroke-width="2.5"/>
+          <text class="ox-val" x="${x}" y="${y - 16}" text-anchor="middle">${d.spo2}%</text>
+        </g>`;
+
+      // Summit day carries a second, much lower reading — the collapse.
+      if (d.spo2Low) {
+        const yl = Y(d.spo2Low);
+        drop += `
+          <line x1="${x}" y1="${y}" x2="${x}" y2="${yl}" stroke="var(--crit)"
+                stroke-width="2" stroke-dasharray="4 4"/>
+          <g class="ox-pt is-crit" data-day="${d.n}">
+            <circle cx="${x}" cy="${yl}" r="8" fill="var(--crit)"
+                    stroke="rgba(214,69,69,.28)" stroke-width="7"/>
+            <text class="ox-crit" x="${x - 18}" y="${yl + 5}" text-anchor="end">${d.spo2Low}% — passed out</text>
+          </g>`;
+      }
+    });
+
+    const ticks = read.map((d, i) =>
+      `<text class="daytick" x="${X(i)}" y="${M.t + ih + 30}" text-anchor="middle">DAY ${d.n}</text>`).join('');
+
+    host.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" role="img"
+           aria-label="Blood oxygen saturation falling from 89% on day one to the 30s at the summit">
+        ${bands}${grid}
+        <path d="${line}" fill="none" stroke="var(--ice)" stroke-width="2.5"
+              stroke-linejoin="round" stroke-linecap="round"/>
+        ${drop}${dots}${ticks}
+        <line class="ax-line" x1="${M.l}" y1="${M.t + ih}" x2="${W - M.r}" y2="${M.t + ih}"/>
+      </svg>`;
+
+    $$('#oxygen-chart .ox-pt').forEach(g => g.addEventListener('click', () => {
+      const sec = $('#day' + g.dataset.day);
+      if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+  }
+
   /* ── ledger ─────────────────────────────────────────────────── */
   function renderLedger() {
     // Total vertical, walked in order, across the whole trek.
@@ -283,6 +374,10 @@
       [TRIP.facts.distanceKm + ' km', 'distance walked', null],
       [comma(toUnit(TRIP.facts.highestSleep)), 'highest camp', TRIP.facts.highestSleep],
       [TRIP.facts.nightsOnMountain, 'nights on the mountain', null],
+      ['11 h', 'from 3 a.m. to the summit', null],
+      ['19 h', 'longest day, start to tent', null],
+      [TRIP.facts.startSpo2 + '% → ' + TRIP.facts.summitSpo2 + '%', 'blood oxygen, day 1 to summit', null],
+      ['1', 'camp skipped', null],
       ['5', 'climate zones crossed', null],
       ['~49%', 'of sea-level oxygen at the top', null],
     ];
@@ -408,6 +503,7 @@
   /* ── boot ───────────────────────────────────────────────────── */
   renderDays();
   renderProfile();
+  renderOxygen();
   renderLedger();
   renderGalleries();
   heroCounters();
