@@ -556,3 +556,41 @@ footer{padding-bottom:96px}
   font-family:var(--mono); font-size:.2em; letter-spacing:.16em;
   vertical-align:baseline; opacity:.85; margin-left:.08em;
 }
+
+/* ── a note from the author (interest form) ─────────────────── */
+.note .section-note{max-width:58ch; font-size:17px}
+.invite{margin-top:30px; max-width:560px}
+.invite .hp{position:absolute; left:-9999px; height:0; overflow:hidden; margin:0}
+.invite-row{margin-bottom:18px}
+.invite-row label{
+  display:block; font-family:var(--mono); font-size:8.5px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--ink-soft); margin-bottom:8px;
+}
+.invite-row label i{font-style:normal; color:var(--ink-faint); text-transform:none; letter-spacing:.08em}
+.invite-row input, .invite-row textarea{
+  width:100%; border:1.5px solid var(--rule-hard); background:var(--paper);
+  color:var(--ink); font-family:var(--serif); font-size:16px; line-height:1.5;
+  padding:11px 13px; border-radius:0; -webkit-appearance:none; resize:vertical;
+}
+.invite-row input::placeholder, .invite-row textarea::placeholder{color:var(--ink-faint)}
+.invite-row input:focus, .invite-row textarea:focus{
+  outline:none; border-color:var(--accent); box-shadow:2px 2px 0 rgba(34,32,27,.16);
+}
+.invite-foot{display:flex; align-items:center; gap:18px; flex-wrap:wrap}
+.invite-foot button{
+  background:none; border:1.5px solid var(--rule-hard); color:var(--ink);
+  padding:11px 22px; cursor:pointer; font:400 9.5px/1 var(--mono);
+  letter-spacing:.18em; text-transform:uppercase; transition:.15s;
+  box-shadow:2px 2px 0 rgba(34,32,27,.16);
+}
+.invite-foot button:hover{background:var(--rule-hard); color:var(--paper)}
+.invite-small{
+  font-family:var(--mono); font-size:9px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--ink-faint);
+}
+.invite-done{
+  margin-top:30px; max-width:560px; border-left:2.5px solid var(--accent);
+  padding:6px 0 6px 16px;
+}
+.invite-done p{margin:0; color:var(--ink-soft); font-size:17px}
+.invite-done b{color:var(--ink)}
