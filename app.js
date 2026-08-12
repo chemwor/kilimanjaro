@@ -234,6 +234,7 @@
             ${moments}
           </aside>
         </div>
+        <div class="reels" data-date="${day.date}"></div>
         <div class="gallery" data-date="${day.date}"></div>`;
 
       host.appendChild(sec);
@@ -739,20 +740,82 @@
     });
   }
 
+  /* ── moving pictures ────────────────────────────────────────── */
+  /* The clips live on Drive; only a poster frame is served from here.
+     The player is built on click, so a page of days costs no iframes. */
+  const POSTER = 'assets/video/poster/';
+
+  const clock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+  async function renderVideos() {
+    let clips = [];
+    try { clips = await (await fetch('data/videos.json')).json(); }
+    catch { return; }                       // opened via file://, strips stay empty
+
+    const byDate = clips.reduce((a, c) => ((a[c.date] ??= []).push(c), a), {});
+
+    $$('.reels').forEach(host => {
+      const list = byDate[host.dataset.date];
+      if (!list || !list.length) return;
+
+      host.innerHTML = `<h3>Moving · ${list.length} clip${list.length > 1 ? 's' : ''} from this day</h3>
+        <div class="reel-row"></div>`;
+      const row = $('.reel-row', host);
+
+      list.forEach((c, i) => {
+        const fig = document.createElement('button');
+        /* the phone clips are vertical; letterbox them rather than crop */
+        fig.className = 'reel' + (c.portrait ? ' is-portrait' : '');
+        fig.innerHTML = `<span class="reel-frame">
+            <img loading="lazy" src="${POSTER + c.slug}.jpg" alt="${c.cap}">
+            <span class="reel-play" aria-hidden="true"></span>
+            <span class="reel-len">${clock(c.secs)}</span>
+          </span>
+          <figcaption>${c.cap}<span class="reel-at">${fmtTime(c.time)}</span></figcaption>`;
+        const img = $('img', fig);
+        img.addEventListener('load', () => img.classList.add('loaded'));
+        if (img.complete) img.classList.add('loaded');
+        fig.addEventListener('click', () => openLightbox(list, i));
+        row.appendChild(fig);
+      });
+    });
+  }
+
   /* ── lightbox ───────────────────────────────────────────────── */
   const lb = $('#lightbox'), lbImg = $('#lbImg'), lbCap = $('#lbCap');
+  const lbVid = $('#lbVid');
   function openLightbox(set, i) {
     lbSet = set; lbIdx = i; paintLightbox();
     lb.hidden = false; document.body.style.overflow = 'hidden';
   }
   function paintLightbox() {
     const p = lbSet[lbIdx];
-    lbImg.src = FULL + p.file;
-    lbImg.alt = `Photograph taken at ${fmtTime(p.time)} on ${p.date}`;
-    lbCap.textContent = `${fmtDate(p.date)} · ${fmtTime(p.time)} · ${lbIdx + 1} of ${lbSet.length}`;
+    const clip = !!p.drive;
+
+    lbImg.hidden = clip;
+    lbVid.hidden = !clip;
+    /* Building the player fresh each time is also what silences it when
+       you step to the next clip or shut the box. */
+    lbVid.innerHTML = clip
+      ? `<iframe src="https://drive.google.com/file/d/${p.drive}/preview"
+                 title="${p.cap}" allow="autoplay; fullscreen" allowfullscreen></iframe>`
+      : '';
+
+    if (clip) {
+      lbImg.removeAttribute('src');
+    } else {
+      lbImg.src = FULL + p.file;
+      lbImg.alt = `Photograph taken at ${fmtTime(p.time)} on ${p.date}`;
+    }
+
+    lbCap.textContent = [clip ? p.cap : null, fmtDate(p.date), fmtTime(p.time),
+                         `${lbIdx + 1} of ${lbSet.length}`].filter(Boolean).join(' · ');
   }
   const step = d => { lbIdx = (lbIdx + d + lbSet.length) % lbSet.length; paintLightbox(); };
-  const closeLightbox = () => { lb.hidden = true; lbImg.src = ''; document.body.style.overflow = ''; };
+  const closeLightbox = () => {
+    lb.hidden = true; lbImg.removeAttribute('src'); lbVid.innerHTML = '';
+    document.body.style.overflow = '';
+  };
 
   $('.lb-close').addEventListener('click', closeLightbox);
   $('.lb-prev').addEventListener('click', () => step(-1));
@@ -774,6 +837,7 @@
   renderOxygen();
   renderLedger();
   renderGalleries();
+  renderVideos();
   renderHud();
 
   $('#unitToggle').addEventListener('click', e => {

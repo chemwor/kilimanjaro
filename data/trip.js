@@ -66,7 +66,7 @@ const TRIP = {
       hours: "3–4",
       zone: "Montane rainforest",
       firstFrame: "08:18",
-      lastFrame: "15:11",
+      lastFrame: "18:43",
       spo2: 89,
       blurb: [
         "I sign the register at Londorossi, ride a truck up a red-dirt road, and start walking where the forest closes over the track. Humid and loud: colobus monkeys somewhere overhead, water running off the trail, moss on everything. As a hike it is gentle. Almost nothing about the first day is technically hard.",
@@ -273,7 +273,7 @@ const TRIP = {
       distanceKm: 10,
       hours: "5–6",
       zone: "Rainforest again",
-      firstFrame: "10:53",
+      firstFrame: "09:54",
       lastFrame: "19:06",
       blurb: [
         "I wake up better. The confusion has mostly lifted. What is left is a mental fog, gaps where facts should be, and it keeps clearing as the day goes on.",

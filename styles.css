@@ -594,3 +594,56 @@ footer{padding-bottom:96px}
 }
 .invite-done p{margin:0; color:var(--ink-soft); font-size:17px}
 .invite-done b{color:var(--ink)}
+
+/* ── moving pictures (clips hosted on Drive, poster served here) ── */
+.reels{padding:clamp(22px,3vw,34px); border-top:1.5px solid var(--rule-hard)}
+.reels:empty{display:none}          /* summit day has no footage */
+.reels h3{
+  font-family:var(--mono); font-size:8.5px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--ink-soft); font-weight:400; margin:0 0 16px;
+}
+.reel-row{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:18px}
+.reel{margin:0; background:none; border:0; padding:0; cursor:pointer; text-align:left}
+.reel-frame{display:block; position:relative}
+.reel img{
+  width:100%; aspect-ratio:16/9; object-fit:cover; border:1px solid var(--rule-hard);
+  filter:sepia(.1) contrast(1.02); transition:filter .3s, opacity .4s; opacity:0;
+}
+.reel img.loaded{opacity:1}
+.reel:hover img{filter:sepia(0) contrast(1.05)}
+.reel.is-portrait img{object-fit:contain; background:#20221c}
+/* nothing floats over a frame that hasn't arrived yet */
+.reel img:not(.loaded) ~ .reel-play,
+.reel img:not(.loaded) ~ .reel-len{opacity:0}
+.reel-play{
+  position:absolute; left:50%; top:50%; width:46px; height:46px; margin:-23px 0 0 -23px;
+  border:1.5px solid var(--paper); border-radius:50%;
+  background:rgba(34,32,27,.42); transition:background .2s, opacity .4s;
+}
+.reel-play::after{
+  content:''; position:absolute; left:18px; top:13px;
+  border-left:15px solid var(--paper);
+  border-top:9px solid transparent; border-bottom:9px solid transparent;
+}
+.reel:hover .reel-play{background:var(--accent)}
+.reel-len{
+  position:absolute; right:7px; bottom:7px; padding:2px 6px; transition:opacity .4s;
+  font-family:var(--mono); font-size:9px; letter-spacing:.1em;
+  color:var(--paper); background:rgba(34,32,27,.72);
+}
+.reel figcaption{
+  font-size:9.5px; letter-spacing:.06em; color:var(--ink-soft);
+  margin-top:7px; line-height:1.5;
+}
+.reel-at{
+  display:block; font-family:var(--mono); font-size:8.5px; letter-spacing:.16em;
+  color:var(--ink-faint); margin-top:3px;
+}
+
+/* the player, sized like the lightbox photograph it replaces */
+.lb-vid{width:min(92vw,1180px); aspect-ratio:16/9; max-height:80vh; background:#000}
+.lb-vid iframe{width:100%; height:100%; border:0; display:block}
+
+@media (max-width:860px){
+  .reel-row{grid-template-columns:1fr}
+}
