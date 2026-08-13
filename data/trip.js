@@ -218,7 +218,7 @@ const TRIP = {
     },
     {
       n: 6,
-      hero: "IMG_3727",
+      hero: "IMG_3729",
       heroCaption: "Uhuru Peak, 2:10 pm. Minutes before it went wrong",
       date: "2026-06-29",
       label: "The roof of Africa",
