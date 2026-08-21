@@ -129,6 +129,47 @@
     </div>
   </section>
 
+  <!-- ── summit register (guestbook) ──────────────────────────── -->
+  <section class="sheet-block register" id="register">
+    <div class="sheet-head">
+      <span class="stamp">Register</span>
+      <span class="head-meta">Open to all · newest first</span>
+    </div>
+    <div class="sheet-inner">
+      <h2>Sign the register</h2>
+      <p class="section-note">
+        Every camp on the mountain keeps a register: a name, where you came from,
+        a line for the record. This page keeps one too. If you walked these seven
+        days with me, even from a chair, leave your name.
+      </p>
+
+      <form id="regForm" class="invite" autocomplete="off">
+        <p class="hp" aria-hidden="true"><label>Don't fill this in: <input name="trail" tabindex="-1"></label></p>
+        <div class="reg-cols">
+          <div class="invite-row">
+            <label for="regName">Your name</label>
+            <input id="regName" name="name" required maxlength="60" placeholder="As you'd sign it at the gate">
+          </div>
+          <div class="invite-row">
+            <label for="regFrom">Where you're from <i>(optional)</i></label>
+            <input id="regFrom" name="location" maxlength="80" placeholder="Nairobi · Denver · sea level">
+          </div>
+        </div>
+        <div class="invite-row">
+          <label for="regMsg">For the record</label>
+          <textarea id="regMsg" name="message" required maxlength="500" rows="3"
+                    placeholder="A line for the register…"></textarea>
+        </div>
+        <div class="invite-foot">
+          <button type="submit">Sign the register →</button>
+          <span class="invite-small" id="regStatus">Name and comment are public.</span>
+        </div>
+      </form>
+
+      <ol class="reg-list" id="regList" aria-live="polite"></ol>
+    </div>
+  </section>
+
   <!-- ── a note from the author ───────────────────────────────── -->
   <section class="sheet-block note" id="note">
     <div class="sheet-head">
@@ -201,6 +242,7 @@
 
 <script src="data/trip.js"></script>
 <script src="app.js"></script>
+<script src="guestbook.js"></script>
 <script>
 /* Quiet AJAX submit for the author's note form. Falls back to a normal
    POST (Netlify's default success page) if fetch fails. */

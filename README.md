@@ -62,6 +62,19 @@ generated from EXIF capture times. To rebuild it after adding photos, re-run
 
 A photo appears under whichever day has a matching `date`.
 
+## The register (guestbook)
+
+The "Sign the register" section stores entries in a Supabase table,
+`kili_guestbook`, on the **ChemNet** project (`cxbfuzqjlqipjyinhzqv`).
+`guestbook.js` talks to it directly over the REST API with the publishable
+key; row-level security only lets visitors insert an entry or read un-hidden
+ones, so the key is safe to ship in the page.
+
+To take down a spam entry, open the table in the Supabase dashboard and set
+its `hidden` column to `true` (or delete the row). A honeypot field and
+database length limits (60-char name, 80-char location, 500-char message)
+keep the drive-by bots out.
+
 ## Times
 
 Times are **stored 24-hour** in `trip.js` and `photos.json` (sortable and easy
